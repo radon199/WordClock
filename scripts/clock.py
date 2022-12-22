@@ -1,7 +1,7 @@
 import uasyncio
 from datetime import datetime, timezone
 
-from utils import get_local_time, array_index_to_linear_index
+from utils import get_local_time, array_index_to_linear_index, debug_print_clock
 import weather
 
 
@@ -12,6 +12,9 @@ class Word:
         self.start_x = x
         self.end_x = x + (length - 1)
         self.y = y
+        
+    def __str___(self):
+        return self.string
 
     def fill_neopixel(self, array, color):
         start_index = array_index_to_linear_index(self.start_x, self.y)
@@ -31,12 +34,13 @@ class Word:
             array[i] = color
 
 
-# Constants
+# Word Constants
 THE       = Word("THE", 0, 3, 15)
 TIME      = Word("TIME", 4, 4 , 15)
 IS        = Word("IS", 9, 2, 15)
 MINUTES   = Word("MINUTES", 0, 7, 8)
 PAST      = Word("PAST", 8, 4, 8)
+TO        = Word("TO", 11, 2, 8)
 OCLOCK    = Word("OCLOCK", 0, 6, 4)
 IN        = Word("IN", 7, 2, 4)
 AT        = Word("AT", 9, 2, 4)
@@ -52,6 +56,7 @@ COOLING   = Word("COOLING", 8, 7, 1)
 WARM      = Word("WARM", 5, 4, 0)
 WARMING   = Word("WARMING", 5, 7, 0)
 HOT       = Word("HOT", 12, 3, 0)
+
 
 MINUTES_DICT = {
     30 : Word("HALF", 12, 4, 15),
@@ -77,8 +82,8 @@ MINUTES_DICT = {
     1  : Word("ONE", 12, 3, 13),
 }
 
+
 HOURS_DICT = {
-    12 : Word("TWELVE", 10, 6, 6),
     11 : Word("ELEVEN", 4, 6, 7),
     10 : Word("TEN", 12, 3, 5),
     9  : Word("NINE", 9, 4, 7),
@@ -90,6 +95,7 @@ HOURS_DICT = {
     3  : Word("THREE", 5, 5, 6),
     2  : Word("TWO", 0, 3, 7),
     1  : Word("ONE", 2, 3, 7),
+    0  : Word("TWELVE", 10, 6, 6),
 }
         
 
@@ -98,46 +104,68 @@ async def update_face(weather_data):
     while True:
         time = get_local_time()
         
-        # Hour modulo 12 gets us 12 form 24 hour
+        words = []
+        # Add the words that are always lit
+        words.extend([THE, TIME, IS])
+        
+        # Hour modulo 12 gets us 12 hours from 24 hour
         hour = time.hour % 12
         minute = time.minute
     
+        # If it is passed 30 minutes we count up to the next hour due to space limitations of the clock
         if minute > 30:
-            to_past = "to"
-            hour = hour + 1
+            words.append(TO)
+            # Hour 11 loops around to 0 if offset
+            hour = 0 if hour > 11 else hour +1
             minute = 60 - minute
         else:
-            to_past = "past"
+            words.append(PAST)
         
-        # The modulo above 
-        if hour == 0:
-            hour = str(12)
-        else:
-            hour = str(hour)
+        # Append the hour word to the list
+        assert hour >= 0 and hour <= 11
+        words.append(HOURS_DICT.get(hour))
+
+        # Append the minute word(s) to the list
+        assert minute <= 30
+        if minute > 0:
+            # Simple case for minutes below 20 or exactly 30
+            if minute <= 20 or minute == 30:
+                words.append(MINUTES_DICT.get(minute))
+            # For time between 20 and 30 we need to subtract 20 to get the single digit
+            else:
+                single = minute - 20
+                if single > 0 and single < 9:
+                    words.append(MINUTES_DICT.get(single))
             
-        minute = str(minute)
-        
-        if weather_data.temp <= 0:
-            temp = "cold"
-        elif weather_data.temp <= 12:
-            temp = "cool"
-        elif weather_data.temp <= 22:
-            temp = "warm"
+            # Only append minutes if minute is above 0, and not quarter or or half
+            if minute != 15 or minute != 30:
+                words.append(MINUTES)
+                
+        # Append the time of day from the raw 24 hour time
+        if time.hour < 5:
+            words.extend([AT, NIGHT])
+        elif time.hour < 12:
+            words.extend([IN, THE_2, MORNING])
+        elif time.hour < 18:
+            words.extend([IN, THE_2, AFTERNOON])
         else:
-            temp = "hot"
+            words.extend([IN, THE_2, EVENING])
+        
+        # Append the temperature
+        words.append(AND)
+        if weather_data.temp <= 0:
+            words.append(COLD)
+        elif weather_data.temp <= 12:
+            words.append(COOL)
+        elif weather_data.temp <= 22:
+            words.append(WARM)
+        else:
+            words.append(HOT)
             
         sunrise = weather_data.sunrise.astimezone(timezone.pst)
         sunset = weather_data.sunset.astimezone(timezone.pst)
-            
-        string = "The current time is {minute} minutes {to_past} {hour} and {temp}. Sunrise is at {sunrise} and sunset is at {sunset}".format(
-            minute=minute,
-            hour=hour,
-            to_past=to_past,
-            temp=temp,
-            sunrise=sunrise,
-            sunset=sunset)
         
-        print(string)
+        debug_print_clock(words, 16, 16)
         
         # Wait for the next minute to start. If this or other tasks delayed the running of this task, the below will compensate.
         # It is still possible to be delayed from the minute if a long running process is active on the minute itself.

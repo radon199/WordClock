@@ -25,6 +25,7 @@ def get_data(city, units, lang):
 
 
 async def get_temperature(data, frequency, loop=True):
+    next_sleep = frequency
     # Run forever
     while loop:
         # Connect to wifi if not already connected
@@ -54,4 +55,4 @@ async def get_temperature(data, frequency, loop=True):
                     data.sunset  = datetime.fromtimestamp(sunset, timezone.utc)
         
         if loop:
-            await uasyncio.sleep(frequency)
+            await uasyncio.sleep(next_sleep)

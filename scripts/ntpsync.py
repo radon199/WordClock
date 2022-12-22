@@ -10,6 +10,7 @@ CONNECTION_TIMEOUT = 3
 
 # Connect to the wifi network and sync the RTC to the UTC time returned from NTP
 async def sync_time(frequency, loop=True):
+    next_sleep = frequency
     # Run forever
     while loop:
         # Connect to wifi if not already connected
@@ -25,8 +26,11 @@ async def sync_time(frequency, loop=True):
                 # Set the system time to UTC from NTP time
                 ntptime.settime()
                 print("RTC Time updated")
+                next_sleep = frequency
             except:
                 print("Unable to get time from NTP. Time not set.")
+                # Sleep for only 5 seconds before trying again
+                next_sleep = 5
         
         if loop:
-            await uasyncio.sleep(frequency)
+            await uasyncio.sleep(next_sleep)
