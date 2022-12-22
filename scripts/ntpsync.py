@@ -25,8 +25,8 @@ async def sync_time(frequency, loop=True):
                 # Set the system time to UTC from NTP time
                 ntptime.settime()
                 print("RTC Time updated")
-            except Exception:
-                print("Unable to get time from NTP")
+            except:
+                print("Unable to get time from NTP. Time not set.")
         
         if loop:
             await uasyncio.sleep(frequency)
