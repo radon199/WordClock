@@ -6,6 +6,13 @@ import psttimezone
 from datetime import datetime, timezone
 
 
+# Lerp between colors
+def color_lerp(A, B, alpha):
+    return (min(int(A[0] * alpha) + int(B[0] * (1.0 - alpha)), 255),
+            min(int(A[1] * alpha) + int(B[1] * (1.0 - alpha)), 255),
+            min(int(A[2] * alpha) + int(B[2] * (1.0 - alpha)), 255))
+
+
 # Return if the passed integer is even or odd
 def is_odd(value):
     return bool(int(value) % 2)

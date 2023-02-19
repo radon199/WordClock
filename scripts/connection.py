@@ -9,6 +9,7 @@ import utils
 
 TIMEOUT = 10
 
+
 async def connect():
     wlan = utils.get_wlan()
     # If the wlan is already connected and to the correct ssid, then simply exit

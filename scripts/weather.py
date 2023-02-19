@@ -28,6 +28,7 @@ async def get_temperature(data, frequency, loop=True):
     next_sleep = frequency
     # Run forever
     while loop:
+        print("Updating weather...")
         # Connect to wifi if not already connected
         retries = CONNECTION_TIMEOUT
         status = network.STAT_IDLE
@@ -53,6 +54,8 @@ async def get_temperature(data, frequency, loop=True):
                 if sunrise and sunset:
                     data.sunrise = datetime.fromtimestamp(sunrise, timezone.utc)
                     data.sunset  = datetime.fromtimestamp(sunset, timezone.utc)
+
+            print("Weather data updated")
         
         if loop:
             await uasyncio.sleep(next_sleep)
