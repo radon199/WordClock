@@ -1,29 +1,36 @@
 import network
 import time
-import uasyncio
 
 from machine import Pin
 
 from secrets import ssid, password
 import utils
+import neopixelarray
 
 TIMEOUT = 10
 
 
-async def connect():
+def connect():
     wlan = utils.get_wlan()
     # If the wlan is already connected and to the correct ssid, then simply exit
-    if wlan.isconnected() and wlan.config('ssid') == ssid:
-        print("Already connected to " + ssid)
-        status = wlan.ifconfig()
-        print("IP = " + status[0])
-        return network.STAT_GOT_IP
+    if wlan.isconnected() and wlan.config("ssid") == ssid:
+            print("Already connected to {}. IP = {}".format(ssid, wlan.ifconfig()[0]))
+            return network.STAT_GOT_IP
 
     # Set the wlan as active and connect using the stored ssid and password
+    print("Starting new WiFi connection...")
     wlan.active(True)
-    wlan.connect(ssid=ssid, key=password)
+    try:
+        wlan.connect(ssid=ssid, key=password)
+    except Exception as e:
+        print("Connection failed.")
+        print(e)
+        return
+    # Delay the start of the connection check
+    time.sleep(1)
 
     # Wait for connection to be made or fail
+    print("Starting timeout...")
     max_wait = TIMEOUT
     while max_wait > 0:
         status = wlan.status()
@@ -34,17 +41,18 @@ async def connect():
             break
         max_wait -= 1
         print("Waiting for connection...")
-        utils.blink_once(100)
-        await uasyncio.sleep(1)
+        neopixelarray.blink_once(*neopixelarray.NETWORK_INDEX, (255,255,0), 100)
+        time.sleep(1)
     
     # Check after max timeout if the connection is good or not
     if wlan.status() != network.STAT_GOT_IP:
         print("Network connection failed")
         print(wlan.status())
+        neopixelarray.blink(*neopixelarray.NETWORK_INDEX, (255,0,0), 3, 50, 300)
         return wlan.status()
     else:
         print("Connected to " + ssid)
         status = wlan.ifconfig()
         print("IP = " + status[0])
-        utils.blink(5, 50, 300)
+        neopixelarray.blink(*neopixelarray.NETWORK_INDEX, (0,255,0), 3, 50, 300)
         return network.STAT_GOT_IP

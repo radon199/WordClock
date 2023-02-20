@@ -1,16 +1,31 @@
 from machine import Pin
 from time import sleep_ms
 import network
+import neopixel
 
 import psttimezone
 from datetime import datetime, timezone
 
 
-# Lerp between colors
+# Clamp a color between 0 and 255
+def color_clamp(color):
+    return (max(min(color[0], 255), 0),
+            max(min(color[1], 255), 0),
+            max(min(color[2], 255), 0))
+
+
+# Lerp between colors based on an alpha, clamped to 8 bit
 def color_lerp(A, B, alpha):
-    return (min(int(A[0] * alpha) + int(B[0] * (1.0 - alpha)), 255),
-            min(int(A[1] * alpha) + int(B[1] * (1.0 - alpha)), 255),
-            min(int(A[2] * alpha) + int(B[2] * (1.0 - alpha)), 255))
+    return color_clamp((int(A[0] * alpha) + int(B[0] * (1.0 - alpha)),
+                        int(A[1] * alpha) + int(B[1] * (1.0 - alpha)),
+                        int(A[2] * alpha) + int(B[2] * (1.0 - alpha))))
+
+
+# Multiply a color by an intensity, clamped to 8 bit
+def color_intenisty(color, intensity):
+    return color_clamp((int(color[0] * intensity),
+                        int(color[1] * intensity),
+                        int(color[2] * intensity)))
 
 
 # Return if the passed integer is even or odd

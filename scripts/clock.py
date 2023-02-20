@@ -1,16 +1,11 @@
-import uasyncio
 from datetime import datetime, timezone
-import neopixel
-import machine
+import time
 
-from utils import get_local_time, array_index_to_linear_index, color_lerp
+import neopixelarray
+from utils import get_local_time, array_index_to_linear_index, color_lerp, color_intenisty
 import weather
 
-WIDTH = 16
-HEIGHT = 16
-OUTPUT = 22
-
-# Stores the linear index to a word, and can add themselves to a neopixel array
+# Stores the x,y position and length of a word, and can add themselves to a neopixel array
 class Word:
     def __init__(self, string, x, y):
         self.string = string
@@ -23,22 +18,8 @@ class Word:
 
     def fill_neopixel(self, array, color):
         print(self.string)
-        start_index = array_index_to_linear_index(self.start_x, self.y, WIDTH, HEIGHT)
-        end_index = array_index_to_linear_index(self.end_x, self.y, WIDTH, HEIGHT)
-
-        # Early exit for single character words
-        if start_index == end_index:
-            array[start_index] = color
-            return
-
-        # If start is after end, switch them so that range is always forward
-        # This happens because odd rows are backwards
-        if start_index > end_index:
-            start_index, end_index = end_index, start_index
-        
-        # Iterate over the range and fill the neopixel array
-        for i in range(start_index, end_index+1):
-            array[i] = color
+        for x in range(self.start_x, self.end_x+1):
+            neopixelarray.set_value(x, self.y, color)
 
 
 # Word Constants
@@ -108,32 +89,28 @@ HOURS_DICT = {
 
 
 # Colors
-DAY = (255,255,255)
-SUNRISE_SUNSET = (255, 175, 0)
-NIGHT = (140, 200, 255)
+COLOR_DAY = (255,255,255)
+COLOR_SUNRISE_SUNSET = (255, 175, 0)
+COLOR_NIGHT = (140, 200, 255)
+
+intensity = 0.5
 
 
-# Output pin
-OUTPUT_PIN = machine.Pin(OUTPUT)
-
-neopixel = neopixel.NeoPixel(OUTPUT_PIN, WIDTH*HEIGHT)
-
-neopixel.fill((0,0,0))
-neopixel.write()
-
-async def update_face(weather_data):
+def update_face(weather_data, data_lock):
     # Run forever
     while True:
-        time = get_local_time()
-        print(time)
+        # The background thread might be updating the time, block until it does
+        data_lock.acquire()
+        current_time = get_local_time()
+        data_lock.release()
         
         words = []
         # Add the words that are always lit
         words.extend([THE, TIME, IS])
         
         # Hour modulo 12 gets us 12 hours from 24 hour
-        hour = time.hour % 12
-        minute = time.minute
+        hour = current_time.hour % 12
+        minute = current_time.minute
     
         # If it is passed 30 minutes we count up to the next hour due to space limitations of the clock
         if minute > 30:
@@ -152,7 +129,7 @@ async def update_face(weather_data):
         assert minute <= 30
         # If minutes is 0, add OCLOCK to the words
         if minute == 0:
-            wods.append(OCLOCK)
+            words.append(OCLOCK)
         else:
             # Simple case for minutes below 20 or exactly 30
             if minute <= 20 or minute == 30:
@@ -174,11 +151,11 @@ async def update_face(weather_data):
         
                 
         # Append the time of day from the raw 24 hour time
-        if time.hour < 5:
+        if current_time.hour < 5:
             words.extend([AT, NIGHT])
-        elif time.hour < 12:
+        elif current_time.hour < 12:
             words.extend([IN, THE_2, MORNING])
-        elif time.hour < 18:
+        elif current_time.hour < 18:
             words.extend([IN, THE_2, AFTERNOON])
         else:
             words.extend([IN, THE_2, EVENING])
@@ -195,34 +172,38 @@ async def update_face(weather_data):
             words.append(HOT)
         
         # Get sunrise and sunset times
+        data_lock.acquire()
         sunrise = weather_data.sunrise.astimezone(timezone.pst)
         sunset = weather_data.sunset.astimezone(timezone.pst)
+        data_lock.release()
         # Copy the date from the current time
-        sunrise.replace(day = time.day)
-        sunset.replace(day = time.day)
+        sunrise.replace(day = current_time.day)
+        sunset.replace(day = current_time.day)
         
         # Choose night or daytime color based on time before or after sunset
-        color = DAY if ((sunrise < time) and (time < sunset)) else NIGHT
+        color = COLOR_DAY if ((sunrise < current_time) and (current_time < sunset)) else COLOR_NIGHT
 
         # If within 1 hour of sunrise or sunset, lerp between the current color and the sunrise/sunset color
-        minutes_to_sunrise = abs((time-sunrise).seconds / 60)
+        minutes_to_sunrise = abs((current_time-sunrise).seconds / 60)
         if minutes_to_sunrise < 60:
             alpha = minutes_to_sunrise / 60
-            color = color_lerp(SUNRISE_SUNSET, color, alpha)
-        minutes_to_sunset  = abs((time-sunset).seconds / 60)
+            color = color_lerp(COLOR_SUNRISE_SUNSET, color, alpha)
+        minutes_to_sunset  = abs((current_time-sunset).seconds / 60)
         if minutes_to_sunset < 60:
             alpha = minutes_to_sunset / 60
-            color = color_lerp(SUNRISE_SUNSET, color, alpha)
-        print(color)
+            color = color_lerp(COLOR_SUNRISE_SUNSET, color, alpha)
+        
+        # Apply intensity overrides
+        color = color_intenisty(color, intensity)
 
         # Clear the array, then fill it with each word
-        neopixel.fill((0,0,0))
+        neopixelarray.clear_array()
         for word in words:
-            word.fill_neopixel(neopixel, (128,128,128))
+            word.fill_neopixel(neopixelarray.get_array(), color)
         # Write to the matrix
-        neopixel.write()
+        neopixelarray.write_array()
         
         # Wait for the next minute to start. If this or other tasks delayed the running of this task, the below will compensate.
         # It is still possible to be delayed from the minute if a long running process is active on the minute itself.
         delay = 60 - int(get_local_time().second) # Time in seconds to end of minute
-        await uasyncio.sleep(delay)
+        time.sleep(delay)

@@ -1,40 +1,42 @@
 import time
 import ntptime
 import network
-import uasyncio
 from machine import RTC
 
 import connection
+import neopixelarray
 from utils import get_local_time
 
 CONNECTION_TIMEOUT = 3
-
+NTP_TIMEOUT = 3
 
 # Connect to the wifi network and sync the RTC to the UTC time returned from NTP
-async def sync_time(frequency, loop=True):
-    next_sleep = frequency
-    # Run forever
-    while loop:
-        print("Updating NTP Time...")
-        # Connect to wifi if not already connected
-        retries = CONNECTION_TIMEOUT
-        status = network.STAT_IDLE
-        while retries > 0:
-            status = await connection.connect()
-            if status == network.STAT_GOT_IP:
-                break;
-
+def sync_time(data_lock):
+    print("Updating NTP Time...")
+    neopixelarray.turn_on(*neopixelarray.CLOCK_INDEX, (255,255,0))
+    # Connect to wifi if not already connected
+    retries = CONNECTION_TIMEOUT
+    status = network.STAT_IDLE
+    while retries > 0:
+        print("Connection timeout : "+str(retries))
+        status = connection.connect()
         if status == network.STAT_GOT_IP:
+            break
+        retries -= 1
+    time.sleep(1)
+
+    if status == network.STAT_GOT_IP:
+        retries = NTP_TIMEOUT
+        while retries > 0:
             try:
                 # Set the system time to UTC from NTP time
                 ntptime.settime()
                 print("RTC Time updated")
-                next_sleep = frequency
+                neopixelarray.blink_once(*neopixelarray.CLOCK_INDEX, (0,255,0), 100)
+                return
             except:
                 print("Unable to get time from NTP. Time not set.")
-                # Sleep for only 5 seconds before trying again
-                next_sleep = 5
-        
-        if loop:
-            print("Check time again in " + str(next_sleep) + " seconds.")
-            await uasyncio.sleep(next_sleep)
+                retries -= 1
+                neopixelarray.blink(*neopixelarray.CLOCK_INDEX, (255,0,0), 3, 50, 300)
+                return
+    neopixelarray.blink(*neopixelarray.CLOCK_INDEX, (255,0,0), 3, 50, 300)

@@ -1,10 +1,11 @@
 import network
 import urequests
-import uasyncio
+import time
 
 from datetime import datetime, timezone
 
 import connection
+import neopixelarray
 from secrets import openweather_api_key
 
 # Store weather data
@@ -16,6 +17,7 @@ class WeatherData:
 
 
 CONNECTION_TIMEOUT = 3
+WEATHER_TIMEOUT = 5
 
 
 def get_data(city, units, lang):
@@ -24,38 +26,41 @@ def get_data(city, units, lang):
     return res.json()
 
 
-async def get_temperature(data, frequency, loop=True):
-    next_sleep = frequency
-    # Run forever
-    while loop:
-        print("Updating weather...")
-        # Connect to wifi if not already connected
-        retries = CONNECTION_TIMEOUT
-        status = network.STAT_IDLE
-        while retries > 0:
-            status = await connection.connect()
-            if status == network.STAT_GOT_IP:
-                break;
-
+def update_weather(data, data_lock):
+    print("Updating weather...")
+    neopixelarray.turn_on(*neopixelarray.WEATHER_INDEX, (255,255,0))
+    # Connect to wifi if not already connected
+    retries = CONNECTION_TIMEOUT
+    status = network.STAT_IDLE
+    while retries > 0:
+        print("Connection timeout : "+str(retries))
+        status = connection.connect()
         if status == network.STAT_GOT_IP:
-            # Get the raw weather json data from openweathermap
-            raw_data = get_data("Vancouver, CA", "metric", "en")
+            break
+        retries -= 1
+    time.sleep(1)
 
-            # Temperature data
-            temp = raw_data.get("main", {}).get("temp", None)
-            if temp:
-                data.temp = float(temp)
+    if status == network.STAT_GOT_IP:
+        # Get the raw weather json data from openweathermap
+        raw_data = get_data("Vancouver, CA", "metric", "en")
 
-            # Sunrise and sunset times
-            sys = raw_data.get("sys", None)
-            if sys:
-                sunrise = sys.get("sunrise", None)
-                sunset  = sys.get("sunset", None)
-                if sunrise and sunset:
-                    data.sunrise = datetime.fromtimestamp(sunrise, timezone.utc)
-                    data.sunset  = datetime.fromtimestamp(sunset, timezone.utc)
+        data_lock.acquire()
+        # Temperature data
+        temp = raw_data.get("main", {}).get("temp", None)
+        if temp:
+            data.temp = float(temp)
 
-            print("Weather data updated")
-        
-        if loop:
-            await uasyncio.sleep(next_sleep)
+        # Sunrise and sunset times
+        sys = raw_data.get("sys", None)
+        if sys:
+            sunrise = sys.get("sunrise", None)
+            sunset  = sys.get("sunset", None)
+            if sunrise and sunset:
+                data.sunrise = datetime.fromtimestamp(sunrise, timezone.utc)
+                data.sunset  = datetime.fromtimestamp(sunset, timezone.utc)
+        data_lock.release()
+
+        print("Weather data updated")
+        neopixelarray.blink_once(*neopixelarray.WEATHER_INDEX, (0,255,0), 100)
+        return
+    neopixelarray.blink(*neopixelarray.WEATHER_INDEX, (255,0,0), 3, 50, 300)
