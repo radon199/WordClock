@@ -95,7 +95,6 @@ COLOR_NIGHT = (140, 200, 255)
 
 intensity = 0.5
 
-
 def update_face(weather_data, data_lock):
     # Run forever
     while True:
@@ -171,7 +170,7 @@ def update_face(weather_data, data_lock):
         else:
             words.append(HOT)
         
-        # Get sunrise and sunset times
+        # Get sunrise and sunset times, background thread might be updating the weather, so aquire the lock
         data_lock.acquire()
         sunrise = weather_data.sunrise.astimezone(timezone.pst)
         sunset = weather_data.sunset.astimezone(timezone.pst)
@@ -197,11 +196,13 @@ def update_face(weather_data, data_lock):
         color = color_intenisty(color, intensity)
 
         # Clear the array, then fill it with each word
+        neopixelarray.ARRAY_LOCK.acquire()
         neopixelarray.clear_array()
         for word in words:
             word.fill_neopixel(neopixelarray.get_array(), color)
         # Write to the matrix
         neopixelarray.write_array()
+        neopixelarray.ARRAY_LOCK.release()
         
         # Wait for the next minute to start. If this or other tasks delayed the running of this task, the below will compensate.
         # It is still possible to be delayed from the minute if a long running process is active on the minute itself.

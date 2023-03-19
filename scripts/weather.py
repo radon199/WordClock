@@ -44,6 +44,7 @@ def update_weather(data, data_lock):
         # Get the raw weather json data from openweathermap
         raw_data = get_data("Vancouver, CA", "metric", "en")
 
+        # aquire data lock
         data_lock.acquire()
         # Temperature data
         temp = raw_data.get("main", {}).get("temp", None)
@@ -58,9 +59,11 @@ def update_weather(data, data_lock):
             if sunrise and sunset:
                 data.sunrise = datetime.fromtimestamp(sunrise, timezone.utc)
                 data.sunset  = datetime.fromtimestamp(sunset, timezone.utc)
+        # release data lock
         data_lock.release()
 
         print("Weather data updated")
-        neopixelarray.blink_once(*neopixelarray.WEATHER_INDEX, (0,255,0), 100)
+        neopixelarray.blink_once(*neopixelarray.WEATHER_INDEX, neopixelarray.GREEN, 100)
         return
-    neopixelarray.blink(*neopixelarray.WEATHER_INDEX, (255,0,0), 3, 50, 300)
+    # Did not connect to network
+    neopixelarray.blink(*neopixelarray.WEATHER_INDEX, neopixelarray.RED, 3, 50, 300)

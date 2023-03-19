@@ -41,18 +41,18 @@ def connect():
             break
         max_wait -= 1
         print("Waiting for connection...")
-        neopixelarray.blink_once(*neopixelarray.NETWORK_INDEX, (255,255,0), 100)
+        neopixelarray.blink_once(*neopixelarray.NETWORK_INDEX, neopixelarray.YELLOW, 100)
         time.sleep(1)
     
     # Check after max timeout if the connection is good or not
     if wlan.status() != network.STAT_GOT_IP:
         print("Network connection failed")
         print(wlan.status())
-        neopixelarray.blink(*neopixelarray.NETWORK_INDEX, (255,0,0), 3, 50, 300)
+        neopixelarray.blink(*neopixelarray.NETWORK_INDEX, neopixelarray.RED, 3, 50, 300)
         return wlan.status()
     else:
         print("Connected to " + ssid)
         status = wlan.ifconfig()
         print("IP = " + status[0])
-        neopixelarray.blink(*neopixelarray.NETWORK_INDEX, (0,255,0), 3, 50, 300)
+        neopixelarray.blink(*neopixelarray.NETWORK_INDEX, neopixelarray.GREEN, 3, 50, 300)
         return network.STAT_GOT_IP

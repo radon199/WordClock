@@ -13,7 +13,7 @@ NTP_TIMEOUT = 3
 # Connect to the wifi network and sync the RTC to the UTC time returned from NTP
 def sync_time(data_lock):
     print("Updating NTP Time...")
-    neopixelarray.turn_on(*neopixelarray.CLOCK_INDEX, (255,255,0))
+    neopixelarray.turn_on(*neopixelarray.CLOCK_INDEX, neopixelarray.YELLOW)
     # Connect to wifi if not already connected
     retries = CONNECTION_TIMEOUT
     status = network.STAT_IDLE
@@ -29,14 +29,17 @@ def sync_time(data_lock):
         retries = NTP_TIMEOUT
         while retries > 0:
             try:
-                # Set the system time to UTC from NTP time
+                # Set the system time to UTC from NTP time, do so within the data lock, as the clock might be reading this time
+                data_lock.acquire()
                 ntptime.settime()
+                data_lock.release()
                 print("RTC Time updated")
-                neopixelarray.blink_once(*neopixelarray.CLOCK_INDEX, (0,255,0), 100)
+                neopixelarray.blink_once(*neopixelarray.CLOCK_INDEX, neopixelarray.Green, 100)
                 return
             except:
                 print("Unable to get time from NTP. Time not set.")
                 retries -= 1
-                neopixelarray.blink(*neopixelarray.CLOCK_INDEX, (255,0,0), 3, 50, 300)
+                neopixelarray.blink(*neopixelarray.CLOCK_INDEX, neopixelarray.RED, 3, 50, 300)
                 return
-    neopixelarray.blink(*neopixelarray.CLOCK_INDEX, (255,0,0), 3, 50, 300)
+    # Did not connect to network
+    neopixelarray.blink(*neopixelarray.CLOCK_INDEX, neopixelarray.RED, 3, 50, 300)
