@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 import time
 
 import neopixelarray
-from utils import get_local_time, array_index_to_linear_index, color_lerp, color_intenisty
+from utils import get_local_time, array_index_to_linear_index, color_lerp, color_intensity
 import weather
 
 # Stores the x,y position and length of a word, and can add themselves to a neopixel array
@@ -17,7 +17,6 @@ class Word:
         return self.string
 
     def fill_neopixel(self, array, color):
-        print(self.string)
         for x in range(self.start_x, self.end_x+1):
             neopixelarray.set_value(x, self.y, color)
 
@@ -193,16 +192,10 @@ def update_face(weather_data, data_lock):
             color = color_lerp(COLOR_SUNRISE_SUNSET, color, alpha)
         
         # Apply intensity overrides
-        color = color_intenisty(color, intensity)
+        color = color_intensity(color, intensity)
 
-        # Clear the array, then fill it with each word
-        neopixelarray.ARRAY_LOCK.acquire()
-        neopixelarray.clear_array()
-        for word in words:
-            word.fill_neopixel(neopixelarray.get_array(), color)
-        # Write to the matrix
-        neopixelarray.write_array()
-        neopixelarray.ARRAY_LOCK.release()
+        # Send the words to the array
+        neopixelarray.update_words(words, color)
         
         # Wait for the next minute to start. If this or other tasks delayed the running of this task, the below will compensate.
         # It is still possible to be delayed from the minute if a long running process is active on the minute itself.

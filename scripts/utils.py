@@ -1,10 +1,16 @@
-from machine import Pin
+from machine import Pin, ADC
 from time import sleep_ms
 import network
 import neopixel
 
 import psttimezone
 from datetime import datetime, timezone
+
+# Global ADC for the light photoresistor
+LIGHT_ADC = ADC(Pin(28))
+
+# Presence input, 1 means activity, 0 is not active
+PRESENCE = Pin(20, Pin.IN)
 
 
 # Clamp a color between 0 and 255
@@ -22,7 +28,7 @@ def color_lerp(A, B, alpha):
 
 
 # Multiply a color by an intensity, clamped to 8 bit
-def color_intenisty(color, intensity):
+def color_intensity(color, intensity):
     return color_clamp((int(color[0] * intensity),
                         int(color[1] * intensity),
                         int(color[2] * intensity)))
@@ -99,3 +105,7 @@ def get_utc_time():
 def get_local_time():
     utc = get_utc_time()
     return utc.astimezone(timezone.pst)
+
+
+def get_light_intensity():
+    return float(LIGHT_ADC.read_u16())/float(65535)

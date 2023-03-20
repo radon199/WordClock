@@ -6,7 +6,8 @@ import clock
 import ntpsync
 import weather
 
-WEATHER_UPDATE = 1800
+# Update weather and time once an hour
+WEATHER_UPDATE = 3600
 
 # Global variable, hold the weather data
 WEATHER_DATA = weather.WeatherData()

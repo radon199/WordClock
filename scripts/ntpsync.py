@@ -34,12 +34,12 @@ def sync_time(data_lock):
                 ntptime.settime()
                 data_lock.release()
                 print("RTC Time updated")
-                neopixelarray.blink_once(*neopixelarray.CLOCK_INDEX, neopixelarray.Green, 100)
+                neopixelarray.blink_once(*neopixelarray.CLOCK_INDEX, neopixelarray.GREEN, 100)
                 return
             except:
                 print("Unable to get time from NTP. Time not set.")
                 retries -= 1
                 neopixelarray.blink(*neopixelarray.CLOCK_INDEX, neopixelarray.RED, 3, 50, 300)
-                return
+        return
     # Did not connect to network
     neopixelarray.blink(*neopixelarray.CLOCK_INDEX, neopixelarray.RED, 3, 50, 300)
