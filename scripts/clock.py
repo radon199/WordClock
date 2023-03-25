@@ -88,12 +88,12 @@ HOURS_DICT = {
 
 
 # Colors
-COLOR_DAY = (255,255,255)
-COLOR_SUNRISE_SUNSET = (255, 175, 0)
+COLOR_DAY = (255, 255, 255)
+COLOR_SUNRISE_SUNSET = (255, 60, 0)
 COLOR_NIGHT = (50, 50, 255)
 
 # Intensity Mult
-INTENSITY = 0.5
+INTENSITY = 0.25
 LOW_LIGHT_INTENSITY = 0.05
 
 def update_face(weather_data, data_lock):
@@ -188,11 +188,11 @@ def update_face(weather_data, data_lock):
         minutes_to_sunrise = abs((current_time-sunrise).seconds / 60)
         if minutes_to_sunrise < 60:
             alpha = minutes_to_sunrise / 60
-            color = color_lerp(COLOR_SUNRISE_SUNSET, color, alpha)
+            color = color_lerp(color, COLOR_SUNRISE_SUNSET, alpha)
         minutes_to_sunset  = abs((current_time-sunset).seconds / 60)
         if minutes_to_sunset < 60:
             alpha = minutes_to_sunset / 60
-            color = color_lerp(COLOR_SUNRISE_SUNSET, color, alpha)
+            color = color_lerp(color, COLOR_SUNRISE_SUNSET, alpha)
         
         # Compute light conditions
         intensity_mult = LOW_LIGHT_INTENSITY if is_low_light() else INTENSITY
