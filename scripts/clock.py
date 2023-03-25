@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 import time
 
 import neopixelarray
-from utils import get_local_time, array_index_to_linear_index, color_lerp, color_intensity
+from utils import get_local_time, array_index_to_linear_index, color_lerp, color_intensity, is_low_light
 import weather
 
 # Stores the x,y position and length of a word, and can add themselves to a neopixel array
@@ -90,9 +90,11 @@ HOURS_DICT = {
 # Colors
 COLOR_DAY = (255,255,255)
 COLOR_SUNRISE_SUNSET = (255, 175, 0)
-COLOR_NIGHT = (140, 200, 255)
+COLOR_NIGHT = (50, 50, 255)
 
-intensity = 0.5
+# Intensity Mult
+INTENSITY = 0.5
+LOW_LIGHT_INTENSITY = 0.05
 
 def update_face(weather_data, data_lock):
     # Run forever
@@ -111,13 +113,14 @@ def update_face(weather_data, data_lock):
         minute = current_time.minute
     
         # If it is passed 30 minutes we count up to the next hour due to space limitations of the clock
-        if minute > 30:
-            words.append(TO)
-            # Hour 11 loops around to 0 if offset
-            hour = 0 if hour > 11 else hour + 1
-            minute = 60 - minute
-        else:
-            words.append(PAST)
+        if minute > 0:
+            if minute > 30:
+                words.append(TO)
+                # Hour 11 loops around to 0 if offset
+                hour = 0 if hour >= 11 else hour + 1
+                minute = 60 - minute
+            else:
+                words.append(PAST)
         
         # Append the hour word to the list
         assert hour >= 0 and hour <= 11
@@ -191,8 +194,11 @@ def update_face(weather_data, data_lock):
             alpha = minutes_to_sunset / 60
             color = color_lerp(COLOR_SUNRISE_SUNSET, color, alpha)
         
+        # Compute light conditions
+        intensity_mult = LOW_LIGHT_INTENSITY if is_low_light() else INTENSITY
+        
         # Apply intensity overrides
-        color = color_intensity(color, intensity)
+        color = color_intensity(color, intensity_mult)
 
         # Send the words to the array
         neopixelarray.update_words(words, color)

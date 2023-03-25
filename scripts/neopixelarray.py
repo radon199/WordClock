@@ -2,7 +2,7 @@ import neopixel
 import machine
 import time
 import _thread
-from utils import array_index_to_linear_index, color_intensity
+from utils import array_index_to_linear_index, color_intensity, color_lerp
 
 # Size Constants
 WIDTH  = 16
@@ -15,7 +15,7 @@ OUTPUT = 22
 STEPS  = 48
 STEP   = 1.0 / float(STEPS)
 PERIOD = 500
-PERIOD_PER_STEP = float(PERIOD) / float(STEPS)
+PERIOD_PER_STEP = int(PERIOD / STEPS)
 
 # Color constants
 BLACK  = (0,0,0)
@@ -45,6 +45,7 @@ ARRAY.write()
 
 # The active words on the ARRAY
 CURRENT_WORDS = []
+CURRENT_COLOR = BLACK
 
 # Turn on pixel
 def turn_on(x, y, color):
@@ -127,6 +128,7 @@ def get_array():
 def update_words(words, color):
     # Declare CURRENT_WORDS as global, so we can assign it instead of clearing and extending it
     global CURRENT_WORDS
+    global CURRENT_COLOR
 
     # In the current list of words, find out what ones exist in the new set of words, and what ones need to be removed
     keep = []
@@ -151,7 +153,7 @@ def update_words(words, color):
         alpha = 1.0
         for i in range(0, STEPS+1):
             # modulated color value per step
-            current_color = color_intensity(color, alpha)
+            current_color = color_intensity(CURRENT_COLOR, alpha)
             alpha = max(0.0, alpha - STEP)
 
             # Write the modulated value to the array
@@ -172,12 +174,21 @@ def update_words(words, color):
             # Write the modulated value to the array
             for word in add:
                 word.fill_neopixel(ARRAY, current_color)
+
+            # The color is updated for any kept words to blend between the previous color and this new color
+            # if it is different from the CURRENT_COLOR
+            if keep and color != CURRENT_COLOR:
+                mix_color = color_lerp(color, CURRENT_COLOR, alpha)
+                for word in keep:
+                    word.fill_neopixel(ARRAY, mix_color)
             ARRAY.write()
 
             time.sleep_ms(PERIOD_PER_STEP)
     
     # Update the current words with this set, so we can compare next iteration
     CURRENT_WORDS = words
+    # Update the current color with this color, so we can compare next iteration
+    CURRENT_COLOR = color
 
     ARRAY_LOCK.release()
 

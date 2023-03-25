@@ -6,8 +6,10 @@ import neopixel
 import psttimezone
 from datetime import datetime, timezone
 
+
 # Global ADC for the light photoresistor
 LIGHT_ADC = ADC(Pin(28))
+
 
 # Presence input, 1 means activity, 0 is not active
 PRESENCE = Pin(20, Pin.IN)
@@ -108,4 +110,8 @@ def get_local_time():
 
 
 def get_light_intensity():
-    return float(LIGHT_ADC.read_u16())/float(65535)
+    return LIGHT_ADC.read_u16()
+
+
+def is_low_light():
+    return get_light_intensity() < 8000
