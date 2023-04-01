@@ -185,22 +185,17 @@ def update_face(current_time, weather_data, data_lock):
     sunrise = sunrise.replace(day = current_time.day)
     sunset = sunset.replace(day = current_time.day)
     
-    print("sunrise {}".format(sunrise))
-    print("sunset  {}".format(sunset))
-    
     # Choose night or daytime color based on time before or after sunset, this will be modulated by the minutes to or from sunrise/sunset
     color = COLOR_DAY if ((sunrise < current_time) and (current_time < sunset)) else COLOR_NIGHT
 
     # If within 1 hour of sunrise or sunset, lerp between the current color and the sunrise/sunset color
     minutes_to_sunrise = utils.get_time_difference_in_seconds(current_time, sunrise) / 60
-    print("to sunrise : {}".format(minutes_to_sunrise))
     if minutes_to_sunrise < 60:
         # Alpha is a 0.0-1.0 value where 0.0 is sunrise and 1.0 is one hour either side
         alpha = minutes_to_sunrise / 60
         color = utils.color_lerp(color, COLOR_SUNRISE_SUNSET, alpha)
 
     minutes_to_sunset  = utils.get_time_difference_in_seconds(current_time, sunset) / 60
-    print("to sunset : {}".format(minutes_to_sunset))
     if minutes_to_sunset < 60:
         # Alpha is a 0.0-1.0 value where 0.0 is sunset and 1.0 is one hour either side
         alpha = minutes_to_sunset / 60
