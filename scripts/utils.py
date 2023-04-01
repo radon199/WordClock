@@ -7,6 +7,10 @@ import psttimezone
 from datetime import datetime, timezone
 
 
+# The number of samples to take from the light sensor
+LIGHT_SAMPLES = 3
+
+
 # Global ADC for the light photoresistor
 LIGHT_ADC = ADC(Pin(28))
 
@@ -85,33 +89,46 @@ def blink_once(duration_ms):
 
 def blink(blink_count, duration_ms, delay_ms):
     led = Pin("LED", Pin.OUT)
-    for i in range(0, blink_count):
+    for i in range(blink_count):
         led.on()
         sleep_ms(duration_ms)
         led.off()
         sleep_ms(delay_ms)
-        
-
-def get_wlan():
-    return network.WLAN(network.STA_IF)
-        
-
-def is_wlan_connected():
-    return get_wlan().isconnected()
 
 
+# Get the current time in UTC from datetime
 def get_utc_time():
     return datetime.now(timezone.utc)
 
 
+# Get the current time in UTC, and convert it to PST
 def get_local_time():
-    utc = get_utc_time()
-    return utc.astimezone(timezone.pst)
+    return get_utc_time().astimezone(timezone.pst)
 
 
+# Get the difference between two datetimes in seconds, regardless of order
+def get_time_difference_in_seconds(t1, t2):
+    if t1 == t2:
+        return 0
+
+    if t2 > t1:
+        delta = t1 - t2
+    else:
+        delta = t2 - t1
+    
+    return abs(delta.total_seconds())
+
+
+# Get the light intensity as a raw 16bit int
 def get_light_intensity():
     return LIGHT_ADC.read_u16()
 
 
+# Check if the current light value is considered low light
 def is_low_light():
-    return get_light_intensity() < 8000
+    # Average over a specified number of samples
+    value = 0
+    for i in range(LIGHT_SAMPLES):
+        value += get_light_intensity()
+    value /= LIGHT_SAMPLES
+    return value < 8000

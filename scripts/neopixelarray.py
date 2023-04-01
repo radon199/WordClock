@@ -151,7 +151,7 @@ def update_words(words, color):
     # Fade out the words that need to be removed, if they exist
     if remove:
         alpha = 1.0
-        for i in range(0, STEPS+1):
+        for i in range(STEPS+1):
             # modulated color value per step
             current_color = color_intensity(CURRENT_COLOR, alpha)
             alpha = max(0.0, alpha - STEP)
@@ -166,7 +166,7 @@ def update_words(words, color):
     # Fade in the words that need to be added
     if add:
         alpha = 0.0
-        for i in range(0, STEPS+1):
+        for i in range(STEPS+1):
             # modulated color value per step
             alpha = min(1.0, alpha + STEP)
             current_color = color_intensity(color, alpha)
@@ -197,7 +197,7 @@ def update_words(words, color):
 def bootup_check():
     #ARRAY_LOCK.acquire()
     x = 0
-    for y in range(0, HEIGHT):
+    for y in range(HEIGHT):
         for z in range(0, 3):
             set_value(x, y, (255*int(z==0), 255*int(z==1), 255*int(z==2)))
             ARRAY.write()

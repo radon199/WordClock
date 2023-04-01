@@ -50,8 +50,8 @@ class PstTimeZone(tzinfo):
         assert dt.tzinfo is self
 
         # Compute the start and end of PDT for the current year
-        start = first_sunday_on_or_after(PDT_START.replace(year = dt.year))
-        end   = first_sunday_on_or_after(PDT_END.replace(year = dt.year))
+        start = first_sunday_on_or_after(PDT_START.replace(year=dt.year))
+        end   = first_sunday_on_or_after(PDT_END.replace(year=dt.year))
 
         # Can't compare naive to aware objects, so strip the timezone from
         # dt first.
