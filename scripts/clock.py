@@ -4,6 +4,7 @@ import time
 import neopixelarray
 import utils
 from data import Data
+from colour import Colour
 
 # Stores the x,y position and length of a word, and can add themselves to a neopixel array via the fill_neopixel function
 class Word:
@@ -20,11 +21,11 @@ class Word:
     def __str___(self):
         return self.string
 
-    def fill_neopixel(self, array, color):
+    def fill_neopixel(self, array, colour):
         # Make sure the range goes past the end of the word, as range stops before the ending index
         for x in range(self.start_x, self.end_x+1):
-            # Set each x value in the array to the color
-            neopixelarray.set_value(x, self.y, color)
+            # Set each x value in the array to the colour
+            neopixelarray.set_value(x, self.y, colour)
 
 
 # Word Constants
@@ -95,15 +96,10 @@ HOURS_DICT = {
 }
 
 
-# Colors
-COLOR_DAY = (255, 255, 255)
-COLOR_SUNRISE_SUNSET = (255, 60, 0)
-COLOR_NIGHT = (50, 50, 255)
-
-
-# Intensity Mult
-INTENSITY = 0.25
-LOW_LIGHT_INTENSITY = 0.05
+# Colours
+COLOUR_DAY = Colour(255, 255, 255)
+COLOUR_SUNRISE_SUNSET = Colour(255, 60, 0)
+COLOUR_NIGHT = Colour(50, 50, 255)
 
 
 def update_face(current_time, data):
@@ -185,36 +181,30 @@ def update_face(current_time, data):
     sunrise = sunrise.replace(day = current_time.day)
     sunset = sunset.replace(day = current_time.day)
     
-    # Choose night or daytime color based on time before or after sunset, this will be modulated by the minutes to or from sunrise/sunset
-    color = COLOR_DAY if ((sunrise < current_time) and (current_time < sunset)) else COLOR_NIGHT
+    # Choose night or daytime colour based on time before or after sunset, this will be modulated by the minutes to or from sunrise/sunset
+    colour = COLOUR_DAY if ((sunrise < current_time) and (current_time < sunset)) else COLOUR_NIGHT
 
-    # If within 1 hour of sunrise or sunset, lerp between the current color and the sunrise/sunset color
+    # If within 1 hour of sunrise or sunset, lerp between the current colour and the sunrise/sunset colour
     minutes_to_sunrise = utils.get_time_difference_in_seconds(current_time, sunrise) / 60
     if minutes_to_sunrise < 60:
         # Alpha is a 0.0-1.0 value where 0.0 is sunrise and 1.0 is one hour either side
         alpha = minutes_to_sunrise / 60
-        color = utils.color_lerp(color, COLOR_SUNRISE_SUNSET, alpha)
+        colour = colour.lerp(COLOUR_SUNRISE_SUNSET, alpha)
 
     minutes_to_sunset  = utils.get_time_difference_in_seconds(current_time, sunset) / 60
     if minutes_to_sunset < 60:
         # Alpha is a 0.0-1.0 value where 0.0 is sunset and 1.0 is one hour either side
         alpha = minutes_to_sunset / 60
-        color = utils.color_lerp(color, COLOR_SUNRISE_SUNSET, alpha)
-    
-    # Compute the overall intensity for the light conditions
-    intensity_mult = LOW_LIGHT_INTENSITY if utils.is_low_light() else INTENSITY
-    
-    # Apply intensity overrides to the selected color
-    color = utils.color_intensity(color, intensity_mult)
+        colour = colour.lerp(COLOUR_SUNRISE_SUNSET, alpha)
     
     # Decrement the presence count each time the clock is updated, if it reaches or is 0, then clear the display
     data.decrement_presence()
     if data.presence_count == 0:
-        neopixelarray.clear_array()
+        neopixelarray.fade_out_array()
         return
 
     # Send the words to the array
-    neopixelarray.update_words(words, color)
+    neopixelarray.update_words(words, colour)
 
 
 # Update the words on the clock face

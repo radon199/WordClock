@@ -35,7 +35,7 @@ def get_data(city, units, lang):
 
 def update_weather(data):
     print("Updating weather...")
-    neopixelarray.turn_on(*neopixelarray.WEATHER_INDEX, (255,255,0))
+    neopixelarray.turn_on(*neopixelarray.WEATHER_INDEX, neopixelarray.YELLOW)
     # Connect to wifi if not already connected
     status = connection.connect(CONNECTION_TIMEOUT)
 

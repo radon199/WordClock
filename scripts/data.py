@@ -27,21 +27,23 @@ class Data:
         # Lock for getting and setting the data
         self.lock = _thread.allocate_lock()
         # Create a reference to the increment presence function, it cannot be used directly in the IRQ
-        self._increment_presence_ref = self.increment_presence
+        self._reset_presence_ref = self.reset_presence
         # Add an interupt to the presence Pin
         PRESENCE_PIN.irq(handler=self.presence_callback, trigger=Pin.IRQ_RISING)
-    
+
+
     # Callback for presence interupt
     def presence_callback(self, pin):
         # Schedual the increment of the presence count, this avoids any issues with functions that were interupted
-        micropython.schedule(self._increment_presence_ref, None)
-    
-    # Actual function that increments the presence
-    def increment_presence(self, arg):
+        micropython.schedule(self._reset_presence_ref, None)
+
+
+    # Actual function that resets the 
+    def reset_presence(self, arg):
         self.lock.acquire()
-        if self.presence_count < PRESENCE_MAX:
-            self.presence_count += 1
+        self.presence_count = PRESENCE_MAX
         self.lock.release()
+
 
     # Decrement the presence count
     def decrement_presence(self):
@@ -49,6 +51,7 @@ class Data:
         if self.presence_count > 0:
             self.presence_count -= 1
         self.lock.release()
+
 
     def __str__(self):
         return "(temp={}, condition={}, sunrise={}, sunset={})".format(self.temp, self.condition, self.sunrise, self.sunset)
