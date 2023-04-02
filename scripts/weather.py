@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 
 import connection
 import neopixelarray
+from colour import RED, GREEN, YELLOW
 from secrets import openweather_api_key
 
 CONNECTION_TIMEOUT = 3
@@ -35,7 +36,7 @@ def get_data(city, units, lang):
 
 def update_weather(data):
     print("Updating weather...")
-    neopixelarray.turn_on(*neopixelarray.WEATHER_INDEX, neopixelarray.YELLOW)
+    neopixelarray.turn_on(*neopixelarray.WEATHER_INDEX, YELLOW)
     # Connect to wifi if not already connected
     status = connection.connect(CONNECTION_TIMEOUT)
 
@@ -48,7 +49,7 @@ def update_weather(data):
                 break
             except:
                 print("Unable to get weather.")
-                neopixelarray.blink(*neopixelarray.CLOCK_INDEX, neopixelarray.RED, 3, 25, 100)
+                neopixelarray.blink(*neopixelarray.WEATHER_INDEX, RED, 3, 25, 100)
 
         # aquire data lock
         data.lock.acquire()
@@ -76,7 +77,7 @@ def update_weather(data):
         data.lock.release()
 
         print("Weather data updated")
-        neopixelarray.blink_once(*neopixelarray.WEATHER_INDEX, neopixelarray.GREEN, 50)
+        neopixelarray.blink_once(*neopixelarray.WEATHER_INDEX, GREEN, 50)
         return
     # Did not connect to network
-    neopixelarray.blink(*neopixelarray.WEATHER_INDEX, neopixelarray.RED, 3, 50, 200)
+    neopixelarray.blink(*neopixelarray.WEATHER_INDEX, RED, 3, 50, 200)

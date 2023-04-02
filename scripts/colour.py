@@ -81,10 +81,12 @@ class Colour:
             r = int(self.r * other.r)
             g = int(self.g * other.g)
             b = int(self.b * other.b)
-        else:
+        elif isinstance(other, int) or isinstance(other, float):
             r = int(self.r * other)
             g = int(self.g * other)
             b = int(self.b * other)
+        else:
+            raise AttributeError("Colour value cannot be multiplied by type.")
         return Colour(r, g, b)
     
 
@@ -94,10 +96,12 @@ class Colour:
             r = int(self.r / other.r)
             g = int(self.g / other.g)
             b = int(self.b / other.b)
-        else:
+        elif isinstance(other, int) or isinstance(other, float):
             r = int(self.r / other)
             g = int(self.g / other)
             b = int(self.b / other)
+        else:
+            raise AttributeError("Colour value cannot be divided by type.")
         return Colour(r, g, b)
     
 
@@ -107,3 +111,11 @@ class Colour:
 
     def __ne__(self, other):
         return (self.r != other.r or self.g != other.g or self.b != other.b)
+
+
+# Color constants
+BLACK  = Colour(0,0,0)
+WHITE  = Colour(255,255,255)
+RED    = Colour(255,0,0)
+YELLOW = Colour(255,255,0)
+GREEN  = Colour(0,255,0)

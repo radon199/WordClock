@@ -6,6 +6,7 @@ from machine import Pin
 from secrets import ssid, password
 import utils
 import neopixelarray
+from colour import RED, GREEN, YELLOW
 
 TIMEOUT = 10
 
@@ -51,18 +52,18 @@ def connect_once():
             status == network.STAT_GOT_IP):
             break
         print("Waiting for connection...")
-        neopixelarray.blink_once(*neopixelarray.NETWORK_INDEX, neopixelarray.YELLOW, 50)
+        neopixelarray.blink_once(*neopixelarray.NETWORK_INDEX, YELLOW, 50)
         time.sleep(1)
     
     # Check after max timeout if the connection is good or not
     if wlan.status() != network.STAT_GOT_IP:
         print("Network connection failed")
         print(wlan.status())
-        neopixelarray.blink(*neopixelarray.NETWORK_INDEX, neopixelarray.RED, 3, 50, 200)
+        neopixelarray.blink(*neopixelarray.NETWORK_INDEX, RED, 3, 50, 200)
         return wlan.status()
     else:
         print("Connected to " + ssid)
         status = wlan.ifconfig()
         print("IP = " + status[0])
-        neopixelarray.blink(*neopixelarray.NETWORK_INDEX, neopixelarray.GREEN, 3, 50, 200)
+        neopixelarray.blink(*neopixelarray.NETWORK_INDEX, GREEN, 3, 50, 200)
         return network.STAT_GOT_IP

@@ -4,7 +4,7 @@ import time
 import neopixelarray
 import utils
 from data import Data
-from colour import Colour
+from colour import Colour, BLACK
 
 # Stores the x,y position and length of a word, and can add themselves to a neopixel array via the fill_neopixel function
 class Word:
@@ -17,6 +17,8 @@ class Word:
         self.end_x = x + (len(self.string)-1)
         # The overall y coordinate of the word
         self.y = y
+        # The color of the word
+        self.colour = BLACK
         
     def __str___(self):
         return self.string

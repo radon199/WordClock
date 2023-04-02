@@ -3,7 +3,7 @@ import machine
 import time
 import _thread
 from utils import array_index_to_linear_index, is_low_light
-from colour import Colour
+from colour import Colour, BLACK
 
 # Size Constants
 WIDTH  = 16
@@ -21,13 +21,6 @@ PERIOD_PER_STEP = int(PERIOD / STEPS)
 # Intensity Mult
 INTENSITY = 0.25
 LOW_LIGHT_INTENSITY = 0.05
-
-# Color constants
-BLACK  = Colour(0,0,0)
-WHITE  = Colour(255,255,255)
-RED    = Colour(255,0,0)
-YELLOW = Colour(255,255,0)
-GREEN  = Colour(0,255,0)
 
 # Indicator index
 NETWORK_INDEX  = (0, 0)
@@ -66,9 +59,8 @@ def turn_off(x, y):
 
 
 # Blink a pixel once
-def blink_once(x, y, colour, duration_ms, lock=True):
-    #if lock:
-    #    ARRAY_LOCK.acquire()
+def blink_once(x, y, colour, duration_ms):
+    ARRAY_LOCK.acquire()
 
     set_value(x, y, colour)
     ARRAY.write()
@@ -78,19 +70,14 @@ def blink_once(x, y, colour, duration_ms, lock=True):
     set_value(x, y, BLACK)
     ARRAY.write()
 
-    #if lock:
-    #    ARRAY_LOCK.release()
+    ARRAY_LOCK.release()
 
 
 # Blink a pixel in the array by the count and duration
 def blink(x, y, colour, blink_count, duration_ms, delay_ms):
-    #ARRAY_LOCK.acquire()
-
     for i in range(0, blink_count):
-        blink_once(x, y, colour, duration_ms, lock=False)
+        blink_once(x, y, colour, duration_ms)
         time.sleep_ms(delay_ms)
-
-    #ARRAY_LOCK.release()
 
 
 # Get the value in the array
@@ -106,7 +93,6 @@ def set_value(x, y, value):
 
 # Clear the array, but keep the 
 def clear_array(write=True, keep=True):
-    #ARRAY_LOCK.acquire()
     if keep:
         N = get_value(*NETWORK_INDEX)
         C = get_value(*CLOCK_INDEX)
@@ -118,7 +104,6 @@ def clear_array(write=True, keep=True):
         set_value(*WEATHER_INDEX, W)
     if write:
         ARRAY.write()
-    #ARRAY_LOCK.release()
     
 
 # Send the data to the matrix
@@ -215,6 +200,7 @@ def update_words(words, colour):
 
 # Fade in the words in the array
 def fade_in_array():
+    ARRAY_LOCK.acquire()
     alpha = 0.0
     for i in range(STEPS+1):
         # modulated colour value per step
@@ -227,10 +213,12 @@ def fade_in_array():
         ARRAY.write()
 
         time.sleep_ms(PERIOD_PER_STEP)
+    ARRAY_LOCK.release()
 
 
 # Fade out the words in the array
 def fade_out_array():
+    ARRAY_LOCK.acquire()
     alpha = 1.0
     for i in range(STEPS+1):
         # modulated colour value per step
@@ -243,11 +231,12 @@ def fade_out_array():
         ARRAY.write()
 
         time.sleep_ms(PERIOD_PER_STEP)
+    ARRAY_LOCK.release()
 
 
 # Run at startup to check the array
 def bootup_check():
-    #ARRAY_LOCK.acquire()
+    ARRAY_LOCK.acquire()
     x = 0
     for y in range(HEIGHT):
         for z in range(0, 3):
@@ -259,4 +248,4 @@ def bootup_check():
             set_value(x, y, BLACK)
             ARRAY.write()
     clear_array(write=True, keep=False)
-    #ARRAY_LOCK.release()
+    ARRAY_LOCK.release()

@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 
 import connection
 import neopixelarray
+from colour import RED, GREEN, YELLOW
 from utils import get_local_time
 
 CONNECTION_TIMEOUT = 3
@@ -27,7 +28,7 @@ async def sync_time_loop(data_lock):
 # Connect to the wifi network and sync the RTC to the UTC time returned from NTP
 def sync_time(data):
     print("Updating NTP Time...")
-    neopixelarray.turn_on(*neopixelarray.CLOCK_INDEX, neopixelarray.YELLOW)
+    neopixelarray.turn_on(*neopixelarray.CLOCK_INDEX, YELLOW)
     # Connect to wifi if not already connected
     status = connection.connect(CONNECTION_TIMEOUT)
 
@@ -39,10 +40,10 @@ def sync_time(data):
                 ntptime.settime()
                 data.lock.release()
                 print("RTC Time updated")
-                neopixelarray.blink_once(*neopixelarray.CLOCK_INDEX, neopixelarray.GREEN, 50)
+                neopixelarray.blink_once(*neopixelarray.CLOCK_INDEX, GREEN, 50)
                 return
             except:
                 print("Unable to get time from NTP. Time not set.")
-                neopixelarray.blink(*neopixelarray.CLOCK_INDEX, neopixelarray.RED, 3, 50, 200)
+                neopixelarray.blink(*neopixelarray.CLOCK_INDEX, RED, 3, 50, 200)
     # Did not connect to network
-    neopixelarray.blink(*neopixelarray.CLOCK_INDEX, neopixelarray.RED, 3, 50, 200)
+    neopixelarray.blink(*neopixelarray.CLOCK_INDEX, RED, 3, 50, 200)
