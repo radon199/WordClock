@@ -3,7 +3,7 @@ import time
 
 import neopixelarray
 import utils
-import weather
+from data import Data
 
 # Stores the x,y position and length of a word, and can add themselves to a neopixel array via the fill_neopixel function
 class Word:
@@ -106,7 +106,7 @@ INTENSITY = 0.25
 LOW_LIGHT_INTENSITY = 0.05
 
 
-def update_face(current_time, weather_data, data_lock):
+def update_face(current_time, data):
     # Holds the words to be active
     words = []
     # Add the words that are always lit
@@ -167,21 +167,21 @@ def update_face(current_time, weather_data, data_lock):
     
     # Append the temperature
     words.append(AND)
-    if weather_data.temp <= 4:
+    if data.temp <= 4:
         words.append(COLD)
-    elif weather_data.temp <= 12:
+    elif data.temp <= 12:
         words.append(COOL)
-    elif weather_data.temp <= 22:
+    elif data.temp <= 22:
         words.append(WARM)
     else:
         words.append(HOT)
     
     # Get sunrise and sunset times in local time, background thread might be updating the weather, so aquire the lock
-    data_lock.acquire()
-    sunrise = weather_data.sunrise.astimezone(timezone.pst)
-    sunset = weather_data.sunset.astimezone(timezone.pst)
-    data_lock.release()
-    # Copy the date from the current time, so that we can compare them even if sunrise and sunset are the next or previous day
+    data.lock.acquire()
+    sunrise = data.sunrise.astimezone(timezone.pst)
+    sunset  = data.sunset.astimezone(timezone.pst)
+    data.lock.release()
+    # Copy the date from the current_time, so that we can compare them even if sunrise and sunset are the next or previous day
     sunrise = sunrise.replace(day = current_time.day)
     sunset = sunset.replace(day = current_time.day)
     
@@ -206,21 +206,27 @@ def update_face(current_time, weather_data, data_lock):
     
     # Apply intensity overrides to the selected color
     color = utils.color_intensity(color, intensity_mult)
+    
+    # Decrement the presence count each time the clock is updated, if it reaches or is 0, then clear the display
+    data.decrement_presence()
+    if data.presence_count == 0:
+        neopixelarray.clear_array()
+        return
 
     # Send the words to the array
     neopixelarray.update_words(words, color)
 
 
 # Update the words on the clock face
-def start_clock_loop(weather_data, data_lock):
+def start_clock_loop(data):
     # Run forever
     while True:
         # The background thread might be updating the time, block until it does
-        data_lock.acquire()
+        data.lock.acquire()
         current_time = utils.get_local_time()
-        data_lock.release()
+        data.lock.release()
 
-        update_face(current_time, weather_data, data_lock)
+        update_face(current_time, data)
 
         # Wait for the next minute to start. If this or other tasks delayed the running of this task, the below will compensate.
         # It is still possible to be delayed from the minute if a long running process is active on the minute itself.

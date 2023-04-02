@@ -2,7 +2,6 @@ from machine import Pin, ADC
 from time import sleep_ms
 import network
 import neopixel
-
 import psttimezone
 from datetime import datetime, timezone
 
@@ -13,10 +12,6 @@ LIGHT_SAMPLES = 3
 
 # Global ADC for the light photoresistor
 LIGHT_ADC = ADC(Pin(28))
-
-
-# Presence input, 1 means activity, 0 is not active
-PRESENCE = Pin(20, Pin.IN)
 
 
 # Clamp a color between 0 and 255

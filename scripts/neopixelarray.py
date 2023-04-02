@@ -25,9 +25,10 @@ YELLOW = (255,255,0)
 GREEN  = (0,255,0)
 
 # Indicator index
-NETWORK_INDEX = (0, 0)
-CLOCK_INDEX   = (1, 0)
-WEATHER_INDEX = (2, 0)
+NETWORK_INDEX  = (0, 0)
+CLOCK_INDEX    = (1, 0)
+WEATHER_INDEX  = (2, 0)
+PRESENCE_INDEX = (3, 0)
 
 # Output pin
 OUTPUT_PIN = machine.Pin(OUTPUT)
@@ -162,7 +163,21 @@ def update_words(words, color):
             ARRAY.write()
 
             time.sleep_ms(PERIOD_PER_STEP)
-    
+
+    # Alter the color of any existing words
+    if keep:
+        if color != CURRENT_COLOR:
+            alpha = 0.0
+            for i in range(STEPS+1):
+                # modulated color value per step
+                alpha = min(1.0, alpha + STEP)
+                mix_color = color_lerp(color, CURRENT_COLOR, alpha)
+                for word in keep:
+                    word.fill_neopixel(ARRAY, mix_color)
+                ARRAY.write()
+
+                time.sleep_ms(PERIOD_PER_STEP)
+
     # Fade in the words that need to be added
     if add:
         alpha = 0.0
@@ -174,13 +189,6 @@ def update_words(words, color):
             # Write the modulated value to the array
             for word in add:
                 word.fill_neopixel(ARRAY, current_color)
-
-            # The color is updated for any kept words to blend between the previous color and this new color
-            # if it is different from the CURRENT_COLOR
-            if keep and color != CURRENT_COLOR:
-                mix_color = color_lerp(color, CURRENT_COLOR, alpha)
-                for word in keep:
-                    word.fill_neopixel(ARRAY, mix_color)
             ARRAY.write()
 
             time.sleep_ms(PERIOD_PER_STEP)
@@ -191,6 +199,22 @@ def update_words(words, color):
     CURRENT_COLOR = color
 
     ARRAY_LOCK.release()
+
+
+# Fade out the array
+def fade_out_array():
+    alpha = 1.0
+    for i in range(STEPS+1):
+        # modulated color value per step
+        current_color = color_intensity(CURRENT_COLOR, alpha)
+        alpha = max(0.0, alpha - STEP)
+
+        # Write the modulated value to the array
+        for word in remove:
+            word.fill_neopixel(ARRAY, current_color)
+        ARRAY.write()
+
+        time.sleep_ms(PERIOD_PER_STEP)
 
 
 # Run at startup to check the array

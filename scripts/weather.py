@@ -1,24 +1,13 @@
 import network
 import urequests
-import time
+import uasyncio
+from utils import get_local_time
 
 from datetime import datetime, timezone
 
 import connection
 import neopixelarray
 from secrets import openweather_api_key
-
-# Store weather data
-class WeatherData:
-    def __init__(self):
-        # The temperature in degrees celsius
-        self.temp = 0
-        # The current weather condition in plain text
-        self.condition = None
-        # The Sunrise and Sunset time as a datetime object in utc
-        self.sunrise = datetime.now(timezone.utc)
-        self.sunset = datetime.now(timezone.utc)
-
 
 CONNECTION_TIMEOUT = 3
 WEATHER_TIMEOUT = 5
@@ -28,13 +17,23 @@ REQUEST_TIMEOUT = 10
 RAIN_CONDITIONS = ["Rain", "Drizzle", "Thunderstorm"]
 
 
+# Async loop
+async def update_weather_loop(data):
+    while True:
+        update_weather(data)
+        # Time in minutes to the next hour
+        delay = ((60 - int(get_local_time().minute)) * 60)
+        print("Next weather update in {} seconds".format(delay))
+        await uasyncio.sleep(delay)
+
+
 def get_data(city, units, lang):
     url = "https://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units={units}&lang={lang}".format(city=city, api_key=openweather_api_key, units=units, lang=lang)
     res = urequests.post(url, timeout=REQUEST_TIMEOUT)
     return res.json()
 
 
-def update_weather(data, data_lock):
+def update_weather(data):
     print("Updating weather...")
     neopixelarray.turn_on(*neopixelarray.WEATHER_INDEX, (255,255,0))
     # Connect to wifi if not already connected
@@ -52,7 +51,7 @@ def update_weather(data, data_lock):
                 neopixelarray.blink(*neopixelarray.CLOCK_INDEX, neopixelarray.RED, 3, 25, 100)
 
         # aquire data lock
-        data_lock.acquire()
+        data.lock.acquire()
         # Temperature data
         temp = raw_data.get("main", {}).get("temp", None)
         if temp:
@@ -74,7 +73,7 @@ def update_weather(data, data_lock):
                 data.sunrise = datetime.fromtimestamp(sunrise, timezone.utc)
                 data.sunset  = datetime.fromtimestamp(sunset, timezone.utc)
         # release data lock
-        data_lock.release()
+        data.lock.release()
 
         print("Weather data updated")
         neopixelarray.blink_once(*neopixelarray.WEATHER_INDEX, neopixelarray.GREEN, 50)
