@@ -105,6 +105,10 @@ COLOUR_NIGHT = Colour(50, 50, 255)
 
 
 def update_face(current_time, data):
+    # If presence is zero, then do not update the face
+    if data.presence_count == 0:
+        return
+
     # Holds the words to be active
     words = []
     # Add the words that are always lit
@@ -198,15 +202,12 @@ def update_face(current_time, data):
         # Alpha is a 0.0-1.0 value where 0.0 is sunset and 1.0 is one hour either side
         alpha = minutes_to_sunset / 60
         colour = colour.lerp(COLOUR_SUNRISE_SUNSET, alpha)
-    
-    # Decrement the presence count each time the clock is updated, if it reaches or is 0, then clear the display
-    data.decrement_presence()
-    if data.presence_count == 0:
-        neopixelarray.fade_out_array()
-        return
 
     # Send the words to the array
     neopixelarray.update_words(words, colour)
+
+    # Decrement the presence count each time the clock is updated, if it reaches or is 0, then the display is deactivated
+    data.decrement_presence()
 
 
 # Update the words on the clock face

@@ -42,42 +42,28 @@ ARRAY = neopixel.NeoPixel(OUTPUT_PIN, WIDTH*HEIGHT)
 ARRAY.fill(BLACK.to_tuple())
 ARRAY.write()
 
+# If the neopixels are active
+ACTIVE = True
+
 # The active words on the ARRAY
 CURRENT_WORDS = []
 CURRENT_COLOUR = BLACK
 
-# Turn on pixel
-def turn_on(x, y, colour):
-    set_value(x, y, colour)
-    ARRAY.write()
+
+# Set the array as active, and fade in any words, if not already active
+def set_active():
+    global ACTIVE
+    if not ACTIVE:
+        fade_in_array()
+        ACTIVE = True
 
 
-# Turn off pixel
-def turn_off(x, y):
-    set_value(x, y, BLACK)
-    ARRAY.write()
-
-
-# Blink a pixel once
-def blink_once(x, y, colour, duration_ms):
-    ARRAY_LOCK.acquire()
-
-    set_value(x, y, colour)
-    ARRAY.write()
-
-    time.sleep_ms(duration_ms)
-
-    set_value(x, y, BLACK)
-    ARRAY.write()
-
-    ARRAY_LOCK.release()
-
-
-# Blink a pixel in the array by the count and duration
-def blink(x, y, colour, blink_count, duration_ms, delay_ms):
-    for i in range(0, blink_count):
-        blink_once(x, y, colour, duration_ms)
-        time.sleep_ms(delay_ms)
+# Set the array as inactive, and fade out any current words, if not already inactive
+def set_inactive():
+    global ACTIVE
+    if ACTIVE:
+        fade_out_array()
+        ACTIVE = False
 
 
 # Get the value in the array
@@ -97,11 +83,13 @@ def clear_array(write=True, keep=True):
         N = get_value(*NETWORK_INDEX)
         C = get_value(*CLOCK_INDEX)
         W = get_value(*WEATHER_INDEX)
+        P = get_value(*PRESENCE_INDEX)
     ARRAY.fill(BLACK.to_tuple())
     if keep:
         set_value(*NETWORK_INDEX, N)
         set_value(*CLOCK_INDEX, C)
         set_value(*WEATHER_INDEX, W)
+        set_value(*PRESENCE_INDEX, P)
     if write:
         ARRAY.write()
     
@@ -118,6 +106,10 @@ def get_array():
 
 # Updates the words on the array, fading out the words that are no longer on the array, and then fading in any new ones.
 def update_words(words, colour):
+    # If the array is currently inactive, then activate it
+    if not ACTIVE:
+        set_active(True)
+
     # Declare CURRENT_WORDS as global, so we can assign it instead of clearing and extending it
     global CURRENT_WORDS
     global CURRENT_COLOUR
@@ -231,7 +223,44 @@ def fade_out_array():
         ARRAY.write()
 
         time.sleep_ms(PERIOD_PER_STEP)
+
+    # Clear the array to make sure it is fully off.
+    clear_array(keep=False)
     ARRAY_LOCK.release()
+
+
+# Turn on pixel
+def turn_on(x, y, colour):
+    set_value(x, y, colour)
+    ARRAY.write()
+
+
+# Turn off pixel
+def turn_off(x, y):
+    set_value(x, y, BLACK)
+    ARRAY.write()
+
+
+# Blink a pixel once
+def blink_once(x, y, colour, duration_ms):
+    ARRAY_LOCK.acquire()
+
+    set_value(x, y, colour)
+    ARRAY.write()
+
+    time.sleep_ms(duration_ms)
+
+    set_value(x, y, BLACK)
+    ARRAY.write()
+
+    ARRAY_LOCK.release()
+
+
+# Blink a pixel in the array by the count and duration
+def blink(x, y, colour, blink_count, duration_ms, delay_ms):
+    for i in range(0, blink_count):
+        blink_once(x, y, colour, duration_ms)
+        time.sleep_ms(delay_ms)
 
 
 # Run at startup to check the array
