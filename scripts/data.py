@@ -48,11 +48,11 @@ class Data:
         self.lock.acquire()
         self.presence_count = PRESENCE_MAX
         self.lock.release()
-        # If the display is inactive, this activates it
-        set_active()
         # If debug is active, blink the presence index once
         if DEBUG_PRESENCE:
             blink_once(*PRESENCE_INDEX, GREEN, 50)
+        # If the display is inactive, this activates it
+        set_active()
 
 
     # Decrement the presence count, not part of the IRQ

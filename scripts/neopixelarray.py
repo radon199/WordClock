@@ -113,12 +113,9 @@ def update_words(words, colour):
     # Declare CURRENT_WORDS as global, so we can assign it instead of clearing and extending it
     global CURRENT_WORDS
     global CURRENT_COLOUR
-
-    # Compute the overall intensity for the light conditions
-    intensity_mult = LOW_LIGHT_INTENSITY if is_low_light() else INTENSITY
     
-    # Apply intensity overrides to the selected colour
-    colour *= intensity_mult
+    # Compute the overall intensity for the light conditions and apply it to the input color
+    colour *= LOW_LIGHT_INTENSITY if is_low_light() else INTENSITY
 
     # In the current list of words, find out what ones exist in the new set of words, and what ones need to be removed
     keep = []
@@ -143,12 +140,12 @@ def update_words(words, colour):
         alpha = 1.0
         for i in range(STEPS+1):
             # modulated colour value per step
-            current_colour = CURRENT_COLOUR * alpha
             alpha = max(0.0, alpha - STEP)
+            mix_colour = CURRENT_COLOUR * alpha
 
             # Write the modulated value to the array
             for word in remove:
-                word.fill_neopixel(ARRAY, current_colour)
+                word.fill_neopixel(ARRAY, mix_colour)
             ARRAY.write()
 
             time.sleep_ms(PERIOD_PER_STEP)
@@ -161,6 +158,8 @@ def update_words(words, colour):
                 # modulated colour value per step
                 alpha = min(1.0, alpha + STEP)
                 mix_colour = colour.lerp(CURRENT_COLOUR, alpha)
+
+                # Write the modulated value to the array
                 for word in keep:
                     word.fill_neopixel(ARRAY, mix_colour)
                 ARRAY.write()
@@ -173,11 +172,11 @@ def update_words(words, colour):
         for i in range(STEPS+1):
             # modulated colour value per step
             alpha = min(1.0, alpha + STEP)
-            current_colour = colour * alpha
+            mix_colour = colour * alpha
 
             # Write the modulated value to the array
             for word in add:
-                word.fill_neopixel(ARRAY, current_colour)
+                word.fill_neopixel(ARRAY, mix_colour)
             ARRAY.write()
 
             time.sleep_ms(PERIOD_PER_STEP)

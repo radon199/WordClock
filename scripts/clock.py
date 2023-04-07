@@ -105,6 +105,8 @@ COLOUR_NIGHT = Colour(50, 50, 255)
 
 
 def update_face(current_time, data):
+    print("Update clock time")
+
     # If presence is zero, then do not update the face
     if data.presence_count == 0:
         return

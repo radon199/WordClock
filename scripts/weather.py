@@ -59,7 +59,7 @@ def update_weather(data):
             data.temp = float(temp)
 
         # Weather condition
-        condition = raw_data.get("weather", [])
+        condition = raw_data.get("weather", None)
         if condition:
             current_condition = condition[0].get("main", None)
             if current_condition:
