@@ -2,7 +2,7 @@ import _thread
 import micropython
 from machine import Pin
 from datetime import datetime, timezone
-from neopixelarray import set_active, set_inactive, blink_once, PRESENCE_INDEX
+from neopixelarray import get_array_lock, set_active, set_inactive, blink_once, PRESENCE_INDEX
 from colour import GREEN
 
 # Allow for errors from the IRQ
@@ -44,15 +44,18 @@ class Data:
 
     # Actual function that resets the presence, not part of the IRQ
     def reset_presence(self, arg):
-        # Reset the presence count to the max value
-        self.lock.acquire()
-        self.presence_count = PRESENCE_MAX
-        self.lock.release()
-        # If debug is active, blink the presence index once
-        if DEBUG_PRESENCE:
-            blink_once(*PRESENCE_INDEX, GREEN, 50)
-        # If the display is inactive, this activates it
-        set_active()
+        # Reset the presence count to the max value, since this is an interupt, make sure the lock isn't already active.
+        if not self.lock.locked():
+            self.lock.acquire()
+            self.presence_count = PRESENCE_MAX
+            self.lock.release()
+        # Since this is an interpupt, make sure the lock isn't active.
+        if not get_array_lock().locked():
+            # If debug is active, blink the presence index once
+            if DEBUG_PRESENCE:
+                blink_once(*PRESENCE_INDEX, GREEN, 50)
+            # If the display is inactive, this activates it
+            set_active()
 
 
     # Decrement the presence count, not part of the IRQ

@@ -49,7 +49,12 @@ def update_weather(data):
                 break
             except:
                 print("Unable to get weather.")
-                neopixelarray.blink(*neopixelarray.WEATHER_INDEX, RED, 3, 25, 100)
+                neopixelarray.blink_once(*neopixelarray.WEATHER_INDEX, RED, 50)
+                
+        if not raw_data:
+            print("Was not able to get weather data. Will not update.")
+            neopixelarray.blink(*neopixelarray.WEATHER_INDEX, RED, 3, 25, 100)
+            return
 
         # aquire data lock
         data.lock.acquire()

@@ -91,7 +91,7 @@ def clear_array(write=True, keep=True):
         set_value(*WEATHER_INDEX, W)
         set_value(*PRESENCE_INDEX, P)
     if write:
-        ARRAY.write()
+        write_array()
     
 
 # Send the data to the matrix
@@ -102,6 +102,10 @@ def write_array():
 # Return a reference to the neopixel array
 def get_array():
     return ARRAY
+
+
+def get_array_lock():
+    return ARRAY_LOCK
 
 
 # Updates the words on the array, fading out the words that are no longer on the array, and then fading in any new ones.
@@ -146,7 +150,7 @@ def update_words(words, colour):
             # Write the modulated value to the array
             for word in remove:
                 word.fill_neopixel(ARRAY, mix_colour)
-            ARRAY.write()
+            write_array()
 
             time.sleep_ms(PERIOD_PER_STEP)
 
@@ -162,7 +166,7 @@ def update_words(words, colour):
                 # Write the modulated value to the array
                 for word in keep:
                     word.fill_neopixel(ARRAY, mix_colour)
-                ARRAY.write()
+                write_array()
 
                 time.sleep_ms(PERIOD_PER_STEP)
 
@@ -177,7 +181,7 @@ def update_words(words, colour):
             # Write the modulated value to the array
             for word in add:
                 word.fill_neopixel(ARRAY, mix_colour)
-            ARRAY.write()
+            write_array()
 
             time.sleep_ms(PERIOD_PER_STEP)
     
@@ -201,7 +205,7 @@ def fade_in_array():
         # Write the modulated value to the array
         for word in CURRENT_WORDS:
             word.fill_neopixel(ARRAY, current_colour)
-        ARRAY.write()
+        write_array()
 
         time.sleep_ms(PERIOD_PER_STEP)
     ARRAY_LOCK.release()
@@ -219,7 +223,7 @@ def fade_out_array():
         # Write the modulated value to the array
         for word in CURRENT_WORDS:
             word.fill_neopixel(ARRAY, current_colour)
-        ARRAY.write()
+        write_array()
 
         time.sleep_ms(PERIOD_PER_STEP)
 
@@ -231,32 +235,34 @@ def fade_out_array():
 # Turn on pixel
 def turn_on(x, y, colour):
     set_value(x, y, colour)
-    ARRAY.write()
+    write_array()
 
 
 # Turn off pixel
 def turn_off(x, y):
     set_value(x, y, BLACK)
-    ARRAY.write()
+    write_array()
 
 
 # Blink a pixel once
-def blink_once(x, y, colour, duration_ms):
+def blink_once(x, y, colour, duration_ms, restore=False):
     ARRAY_LOCK.acquire()
+    
+    old_value = get_value(x, y)
 
     set_value(x, y, colour)
-    ARRAY.write()
+    write_array()
 
     time.sleep_ms(duration_ms)
 
-    set_value(x, y, BLACK)
-    ARRAY.write()
+    set_value(x, y, old_value if restore else BLACK)
+    write_array()
 
     ARRAY_LOCK.release()
 
 
 # Blink a pixel in the array by the count and duration
-def blink(x, y, colour, blink_count, duration_ms, delay_ms):
+def blink(x, y, colour, blink_count, duration_ms, delay_ms, restore=False):
     for i in range(0, blink_count):
         blink_once(x, y, colour, duration_ms)
         time.sleep_ms(delay_ms)
@@ -269,11 +275,11 @@ def bootup_check():
     for y in range(HEIGHT):
         for z in range(0, 3):
             set_value(x, y, Colour(255*int(z==0), 255*int(z==1), 255*int(z==2)))
-            ARRAY.write()
+            write_array()
             
             time.sleep(0.01)
 
             set_value(x, y, BLACK)
-            ARRAY.write()
+            write_array()
     clear_array(write=True, keep=False)
     ARRAY_LOCK.release()
