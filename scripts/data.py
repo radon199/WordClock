@@ -27,7 +27,7 @@ class Data:
         self.sunrise = datetime.now(timezone.utc)
         self.sunset = datetime.now(timezone.utc)
         # Presence stack, starts at 30 and is decremeneted by the clock
-        self.presence_count = 30
+        self.presence_count = PRESENCE_MAX
         # Lock for getting and setting the data
         self.lock = _thread.allocate_lock()
         # Create a reference to the increment presence function, it cannot be used directly in the IRQ as calling a member functions allocates memory
@@ -46,9 +46,10 @@ class Data:
     def reset_presence(self, arg):
         # Reset the presence count to the max value, since this is an interupt, make sure the lock isn't already active.
         if not self.lock.locked():
-            self.lock.acquire()
-            self.presence_count = PRESENCE_MAX
-            self.lock.release()
+            if self.lock.acquire(1, 5):
+                self.presence_count = PRESENCE_MAX
+                self.lock.release()
+                print("Presence detected. Counter reset.")
         # Since this is an interpupt, make sure the lock isn't active.
         if not get_array_lock().locked():
             # If debug is active, blink the presence index once
@@ -60,13 +61,18 @@ class Data:
 
     # Decrement the presence count, not part of the IRQ
     def decrement_presence(self):
-        self.lock.acquire()
-        if self.presence_count > 0:
-            self.presence_count -= 1
-        self.lock.release()
+        if self.lock.acquire(1, 5):
+            if self.presence_count > 0:
+                self.presence_count -= 1
+            self.lock.release()
         # If the presence count is zero, set the display as inactive
         if self.presence_count == 0:
             set_inactive()
+
+    
+    # If the presence count is above 0
+    def has_presence(self):
+        return self.presence_count > 0
 
 
     def __str__(self):

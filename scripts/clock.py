@@ -107,9 +107,14 @@ COLOUR_NIGHT = Colour(50, 50, 255)
 def update_face(current_time, data):
     print("Update clock time")
 
-    # If presence is zero, then do not update the face
-    if data.presence_count == 0:
+    # If presence is zero, then do not update the face, but only inside quiet hours
+    # if utils.is_quiet_hours(current_time):
+    if not data.has_presence():
+        neopixelarray.set_inactive()
         return
+    else:
+        neopixelarray.set_active()
+        
 
     # Holds the words to be active
     words = []
@@ -209,6 +214,7 @@ def update_face(current_time, data):
     neopixelarray.update_words(words, colour)
 
     # Decrement the presence count each time the clock is updated, if it reaches or is 0, then the display is deactivated
+    # if utils.is_quiet_hours(current_time):
     data.decrement_presence()
 
 

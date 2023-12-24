@@ -1,6 +1,7 @@
 import network
 import urequests
 import uasyncio
+import time
 from utils import get_local_time
 
 from datetime import datetime, timezone
@@ -12,6 +13,7 @@ from secrets import openweather_api_key
 
 CONNECTION_TIMEOUT = 3
 WEATHER_TIMEOUT = 5
+WEATHER_WAIT = 2
 REQUEST_TIMEOUT = 10
 
 # Conditions that are considered rain
@@ -46,10 +48,12 @@ def update_weather(data):
         for i in range(WEATHER_TIMEOUT):
             try:
                 raw_data = get_data("Vancouver, CA", "metric", "en")
+                print("Got weather data.")
                 break
             except:
                 print("Unable to get weather.")
                 neopixelarray.blink_once(*neopixelarray.WEATHER_INDEX, RED, 50)
+            time.sleep(WEATHER_WAIT)
                 
         if not raw_data:
             print("Was not able to get weather data. Will not update.")
@@ -57,32 +61,32 @@ def update_weather(data):
             return
 
         # aquire data lock
-        data.lock.acquire()
-        # Temperature data
-        temp = raw_data.get("main", {}).get("temp", None)
-        if temp:
-            data.temp = float(temp)
+        if data.lock.acquire(1, 5):
+            # Temperature data
+            temp = raw_data.get("main", {}).get("temp", None)
+            if temp:
+                data.temp = float(temp)
 
-        # Weather condition
-        condition = raw_data.get("weather", None)
-        if condition:
-            current_condition = condition[0].get("main", None)
-            if current_condition:
-                data.condition = current_condition
+            # Weather condition
+            condition = raw_data.get("weather", None)
+            if condition:
+                current_condition = condition[0].get("main", None)
+                if current_condition:
+                    data.condition = current_condition
 
-        # Sunrise and sunset times
-        sys = raw_data.get("sys", None)
-        if sys:
-            sunrise = sys.get("sunrise", None)
-            sunset  = sys.get("sunset", None)
-            if sunrise and sunset:
-                data.sunrise = datetime.fromtimestamp(sunrise, timezone.utc)
-                data.sunset  = datetime.fromtimestamp(sunset, timezone.utc)
-        # release data lock
-        data.lock.release()
+            # Sunrise and sunset times
+            sys = raw_data.get("sys", None)
+            if sys:
+                sunrise = sys.get("sunrise", None)
+                sunset  = sys.get("sunset", None)
+                if sunrise and sunset:
+                    data.sunrise = datetime.fromtimestamp(sunrise, timezone.utc)
+                    data.sunset  = datetime.fromtimestamp(sunset, timezone.utc)
+            # release data lock
+            data.lock.release()
 
-        print("Weather data updated")
-        neopixelarray.blink_once(*neopixelarray.WEATHER_INDEX, GREEN, 50)
-        return
+            print("Weather data updated")
+            neopixelarray.blink_once(*neopixelarray.WEATHER_INDEX, GREEN, 50)
+            return
     # Did not connect to network
     neopixelarray.blink(*neopixelarray.WEATHER_INDEX, RED, 3, 50, 200)

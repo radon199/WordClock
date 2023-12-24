@@ -111,3 +111,8 @@ def is_low_light():
         value += get_light_intensity()
     value /= LIGHT_SAMPLES
     return value < 8000
+
+
+# Check if we are in quiet hours
+def is_quiet_hours(current_time):
+    return current_time.hour < 7 and current_time.hour > 1
