@@ -16,9 +16,9 @@ NTP_TIMEOUT = 3
 NTP_WAIT = 2
 
 # Async loop
-async def sync_time_loop(data_lock):
+async def sync_time_loop(data):
     while True:
-        sync_time(data_lock)
+        sync_time(data)
         current_time = get_local_time()
         # Time to 2am the next day
         next_fetch = (current_time.replace(hour=2, minute=30, second=0, microsecond=0) + timedelta(days=1)) - current_time

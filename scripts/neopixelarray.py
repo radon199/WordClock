@@ -15,7 +15,7 @@ OUTPUT = 22
 # Fade Constants
 STEPS  = 48
 STEP   = 1.0 / float(STEPS)
-PERIOD = 500
+PERIOD = 100
 PERIOD_PER_STEP = int(PERIOD / STEPS)
 
 # Intensity Mult
@@ -109,11 +109,7 @@ def get_array_lock():
 
 
 # Updates the words on the array, fading out the words that are no longer on the array, and then fading in any new ones.
-def update_words(words, colour):
-    # If the array is currently inactive, then activate it
-    if not ACTIVE:
-        set_active(True)
-
+def update_words(words, colour, linear_fade):
     # Declare CURRENT_WORDS as global, so we can assign it instead of clearing and extending it
     global CURRENT_WORDS
     global CURRENT_COLOUR
@@ -121,76 +117,110 @@ def update_words(words, colour):
     # Compute the overall intensity for the light conditions and apply it to the input color
     colour *= LOW_LIGHT_INTENSITY if is_low_light() else INTENSITY
 
-    # In the current list of words, find out what ones exist in the new set of words, and what ones need to be removed
-    keep = []
-    remove = []
-    for existing in CURRENT_WORDS:
-        if existing in words:
-            keep.append(existing)
-        else:
-            remove.append(existing)
+    # If the array is not active, then simply store the updated time
+    if not ACTIVE:
+        if ARRAY_LOCK.acquire(1, 5):
+            CURRENT_WORDS = words
+            CURRENT_COLOUR = colour
+            ARRAY_LOCK.release()
+        return
     
-    # Filter the list of new words and remove any that already exist on the current array
-    add = []
-    for new in words:
-        if new in keep:
-            continue
-        else:
-            add.append(new)
+    if linear_fade:
+        # Fade out all words
+        fade_out_array()
 
-    ARRAY_LOCK.acquire()
-    # Fade out the words that need to be removed, if they exist
-    if remove:
-        alpha = 1.0
-        for i in range(STEPS+1):
-            # modulated colour value per step
-            alpha = max(0.0, alpha - STEP)
-            mix_colour = CURRENT_COLOUR * alpha
+        if ARRAY_LOCK.acquire(1, 5):
+            # for each word fade them on one at a time
+            for word in words:
+                alpha = 0.0
+                for i in range(STEPS+1):
+                    # modulated colour value per step
+                    alpha = min(1.0, alpha + STEP)
+                    mix_colour = colour * alpha
 
-            # Write the modulated value to the array
-            for word in remove:
-                word.fill_neopixel(ARRAY, mix_colour)
-            write_array()
-
-            time.sleep_ms(PERIOD_PER_STEP)
-
-    # Alter the colour of any existing words
-    if keep:
-        if colour != CURRENT_COLOUR:
-            alpha = 0.0
-            for i in range(STEPS+1):
-                # modulated colour value per step
-                alpha = min(1.0, alpha + STEP)
-                mix_colour = colour.lerp(CURRENT_COLOUR, alpha)
-
-                # Write the modulated value to the array
-                for word in keep:
+                    # Write the modulated value to the array
                     word.fill_neopixel(ARRAY, mix_colour)
-                write_array()
+                    write_array()
 
-                time.sleep_ms(PERIOD_PER_STEP)
+                    time.sleep_ms(PERIOD_PER_STEP)
+            
+            # Update the current words with this set, so we can compare next iteration
+            CURRENT_WORDS = words
+            # Update the current colour with this colour, so we can compare next iteration
+            CURRENT_COLOUR = colour
 
-    # Fade in the words that need to be added
-    if add:
-        alpha = 0.0
-        for i in range(STEPS+1):
-            # modulated colour value per step
-            alpha = min(1.0, alpha + STEP)
-            mix_colour = colour * alpha
+            ARRAY_LOCK.release()
+    else:
+        # In the current list of words, find out what ones exist in the new set of words, and what ones need to be removed
+        keep = []
+        remove = []
+        for existing in CURRENT_WORDS:
+            if existing in words:
+                keep.append(existing)
+            else:
+                remove.append(existing)
+        
+        # Filter the list of new words and remove any that already exist on the current array
+        add = []
+        for new in words:
+            if new in keep:
+                continue
+            else:
+                add.append(new)
 
-            # Write the modulated value to the array
-            for word in add:
-                word.fill_neopixel(ARRAY, mix_colour)
-            write_array()
+        if ARRAY_LOCK.acquire(1, 5):
+            # Fade out the words that need to be removed, if they exist
+            if remove:
+                alpha = 1.0
+                for i in range(STEPS+1):
+                    # modulated colour value per step
+                    alpha = max(0.0, alpha - STEP)
+                    mix_colour = CURRENT_COLOUR * alpha
 
-            time.sleep_ms(PERIOD_PER_STEP)
-    
-    # Update the current words with this set, so we can compare next iteration
-    CURRENT_WORDS = words
-    # Update the current colour with this colour, so we can compare next iteration
-    CURRENT_COLOUR = colour
+                    # Write the modulated value to the array
+                    for word in remove:
+                        word.fill_neopixel(ARRAY, mix_colour)
+                    write_array()
 
-    ARRAY_LOCK.release()
+                    time.sleep_ms(PERIOD_PER_STEP)
+
+            # Alter the colour of any existing words
+            if keep:
+                if colour != CURRENT_COLOUR:
+                    alpha = 0.0
+                    for i in range(STEPS+1):
+                        # modulated colour value per step
+                        alpha = min(1.0, alpha + STEP)
+                        mix_colour = colour.lerp(CURRENT_COLOUR, alpha)
+
+                        # Write the modulated value to the array
+                        for word in keep:
+                            word.fill_neopixel(ARRAY, mix_colour)
+                        write_array()
+
+                        time.sleep_ms(PERIOD_PER_STEP)
+
+            # Fade in the words that need to be added
+            if add:
+                alpha = 0.0
+                for i in range(STEPS+1):
+                    # modulated colour value per step
+                    alpha = min(1.0, alpha + STEP)
+                    mix_colour = colour * alpha
+
+                    # Write the modulated value to the array
+                    for word in add:
+                        word.fill_neopixel(ARRAY, mix_colour)
+                    write_array()
+
+                    time.sleep_ms(PERIOD_PER_STEP)
+            
+            # Update the current words with this set, so we can compare next iteration
+            CURRENT_WORDS = words
+            # Update the current colour with this colour, so we can compare next iteration
+            CURRENT_COLOUR = colour
+
+            ARRAY_LOCK.release()
 
 
 # Fade in the words in the array

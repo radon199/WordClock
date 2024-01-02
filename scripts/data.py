@@ -11,8 +11,8 @@ micropython.alloc_emergency_exception_buf(100)
 # Presence input, 1 means activity, 0 is not active
 PRESENCE_PIN = Pin(20, Pin.IN)
 
-# The maximum value to count to for presence
-PRESENCE_MAX = 30
+# The maximum value to count from for presence
+PRESENCE_MAX = 60
 
 DEBUG_PRESENCE = True
 
@@ -38,7 +38,8 @@ class Data:
 
     # Callback for presence interupt
     def presence_callback(self, pin):
-        # Schedual the resetting of the presence count, this avoids any issues with functions that were interupted
+        # Schedual the resetting of the presence count, this callback may have interupted a function and this will cause that function to complete first before finishing the call
+        # but it still might be happening during another, larger, function
         micropython.schedule(self._reset_presence_ref, "")
 
 

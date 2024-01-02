@@ -6,9 +6,14 @@ import utils
 from data import Data
 from colour import Colour, BLACK
 
+# sort key function for words, in top to bottom and left to right order
+def word_sort_key(word):
+    # subtract y from pixel array height for reverse search
+    return ((neopixelarray.HEIGHT - word.y) * neopixelarray.WIDTH) + word.start_x
+
 # Stores the x,y position and length of a word, and can add themselves to a neopixel array via the fill_neopixel function
 class Word:
-    def __init__(self, string, x, y):
+    def __init__(self, string, x, y, colour=BLACK):
         # The text based representation of the word
         self.string = string
         # The starting x coodinate of the word
@@ -18,7 +23,7 @@ class Word:
         # The overall y coordinate of the word
         self.y = y
         # The color of the word
-        self.colour = BLACK
+        self.colour = colour
         
     def __str___(self):
         return self.string
@@ -105,16 +110,7 @@ COLOUR_NIGHT = Colour(50, 50, 255)
 
 
 def update_face(current_time, data):
-    print("Update clock time")
-
-    # If presence is zero, then do not update the face, but only inside quiet hours
-    # if utils.is_quiet_hours(current_time):
-    if not data.has_presence():
-        neopixelarray.set_inactive()
-        return
-    else:
-        neopixelarray.set_active()
-        
+    print("Update clock time")        
 
     # Holds the words to be active
     words = []
@@ -210,12 +206,14 @@ def update_face(current_time, data):
         alpha = minutes_to_sunset / 60
         colour = colour.lerp(COLOUR_SUNRISE_SUNSET, alpha)
 
-    # Send the words to the array
-    neopixelarray.update_words(words, colour)
+    # sort the words in their order on the clock face
+    words.sort(key=word_sort_key)
 
-    # Decrement the presence count each time the clock is updated, if it reaches or is 0, then the display is deactivated
-    # if utils.is_quiet_hours(current_time):
-    data.decrement_presence()
+    # Do the linear fade on the hour
+    linear_fade = True if minute == 0 else False
+
+    # Send the words to the array
+    neopixelarray.update_words(words, colour, linear_fade)
 
 
 # Update the words on the clock face

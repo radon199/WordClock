@@ -6,6 +6,7 @@ import neopixelarray
 from clock import start_clock_loop
 from ntpsync import sync_time, sync_time_loop
 from weather import update_weather, update_weather_loop
+from presence import update_presence_loop
 from data import Data
 
 
@@ -33,8 +34,10 @@ async def main_thread():
     # Create the async tasks
     sync_task = uasyncio.create_task(sync_time_loop(DATA))
     weather_task = uasyncio.create_task(update_weather_loop(DATA))
+    presence_task = uasyncio.create_task(update_presence_loop(DATA))
     await sync_task
     await weather_task
+    await presence_task
 
 
 # Increase stack size for background thread, otherwise we hit the function limit
