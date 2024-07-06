@@ -210,7 +210,7 @@ def update_face(current_time, data):
     words.sort(key=word_sort_key)
 
     # Do the linear fade on the hour
-    linear_fade = True if minute == 0 else False
+    linear_fade = True if (minute == 0 or minute == 15 or minute == 30 or minute == 45) else False
 
     # Send the words to the array
     neopixelarray.update_words(words, colour, linear_fade)

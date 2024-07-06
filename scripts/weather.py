@@ -47,7 +47,7 @@ def update_weather(data):
         # Get the raw weather json data from openweathermap
         for i in range(WEATHER_TIMEOUT):
             try:
-                raw_data = get_data("Vancouver, CA", "metric", "en")
+                raw_data = get_data("Vancouver,%20CA", "metric", "en")
                 print("Got weather data.")
                 break
             except:
