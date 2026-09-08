@@ -33,7 +33,9 @@ async def update_weather_loop(data):
 def get_data(city, units, lang):
     url = "https://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units={units}&lang={lang}".format(city=city, api_key=openweather_api_key, units=units, lang=lang)
     res = urequests.post(url, timeout=REQUEST_TIMEOUT)
-    return res.json()
+    data = res.json()
+    res.close()
+    return data
 
 
 def update_weather(data):

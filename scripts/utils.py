@@ -2,7 +2,7 @@ from machine import Pin, ADC
 from time import sleep_ms
 import network
 import neopixel
-import psttimezone
+import pttimezone
 from datetime import datetime, timezone
 
 
@@ -80,9 +80,9 @@ def get_utc_time():
     return datetime.now(timezone.utc)
 
 
-# Get the current time in UTC, and convert it to PST
+# Get the current time in UTC, and convert it to PT
 def get_local_time():
-    return get_utc_time().astimezone(timezone.pst)
+    return get_utc_time().astimezone(timezone.pt)
 
 
 # Get the difference between two datetimes in seconds, regardless of order

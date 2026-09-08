@@ -9,7 +9,6 @@ from datetime import datetime, timedelta
 import connection
 import neopixelarray
 from colour import RED, GREEN, YELLOW
-from utils import get_local_time
 
 CONNECTION_TIMEOUT = 3
 NTP_TIMEOUT = 3

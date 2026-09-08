@@ -4,6 +4,7 @@ from machine import Pin
 from datetime import datetime, timezone
 from neopixelarray import get_array_lock, set_active, set_inactive, blink_once, PRESENCE_INDEX
 from colour import GREEN
+from utils import get_utc_time, get_local_time
 
 # Allow for errors from the IRQ
 micropython.alloc_emergency_exception_buf(100)
@@ -19,21 +20,31 @@ DEBUG_PRESENCE = True
 # Store persistant data
 class Data:
     def __init__(self):
+        # Lock for getting and setting the data
+        self.lock = _thread.allocate_lock()
+        # The last time the clock ticked
+        self.last_clock_time = get_local_time()
+        # The last time the main thread ran the watchdog
+        self.last_main_time = get_local_time()
         # The temperature in degrees celsius
         self.temp = 0
         # The current weather condition in plain text
         self.condition = None
         # The Sunrise and Sunset time as a datetime object in utc
-        self.sunrise = datetime.now(timezone.utc)
-        self.sunset = datetime.now(timezone.utc)
+        self.sunrise = get_utc_time()
+        self.sunset = get_utc_time()
         # Presence stack, starts at 30 and is decremeneted by the clock
         self.presence_count = PRESENCE_MAX
-        # Lock for getting and setting the data
-        self.lock = _thread.allocate_lock()
         # Create a reference to the increment presence function, it cannot be used directly in the IRQ as calling a member functions allocates memory
         self._reset_presence_ref = self.reset_presence
         # Add an interupt to the presence Pin
         PRESENCE_PIN.irq(handler=self.presence_callback, trigger=Pin.IRQ_RISING)
+
+
+    # Reset the watchdog timers to the current local time
+    def reset_watchdog_times(self):
+        self.last_clock_time = get_local_time()
+        self.last_main_time = get_local_time()
 
 
     # Callback for presence interupt

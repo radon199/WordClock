@@ -7,6 +7,7 @@ from clock import start_clock_loop
 from ntpsync import sync_time, sync_time_loop
 from weather import update_weather, update_weather_loop
 from presence import update_presence_loop
+from watchdog import feed_watchdog_loop
 from data import Data
 
 
@@ -18,12 +19,13 @@ print("Initalization...")
 neopixelarray.bootup_check()
 sync_time(DATA)
 update_weather(DATA)
+DATA.reset_watchdog_times()
 print("Initalization complete")
 
 
 # Background thread runs the clock face only on it's own, and loops every minute
 def background_thread():
-    # update_face will run forever
+    # start_clock_loop will run forever
     start_clock_loop(DATA)
 
 
@@ -35,9 +37,11 @@ async def main_thread():
     sync_task = uasyncio.create_task(sync_time_loop(DATA))
     weather_task = uasyncio.create_task(update_weather_loop(DATA))
     presence_task = uasyncio.create_task(update_presence_loop(DATA))
+    watchdog_task = uasyncio.create_task(feed_watchdog_loop(DATA))
     await sync_task
     await weather_task
     await presence_task
+    await watchdog_task
 
 
 # Increase stack size for background thread, otherwise we hit the function limit

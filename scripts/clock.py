@@ -5,6 +5,7 @@ import neopixelarray
 import utils
 from data import Data
 from colour import Colour, BLACK
+from watchdog import check_main_watchdog
 
 # sort key function for words, in top to bottom and left to right order
 def word_sort_key(word):
@@ -183,8 +184,8 @@ def update_face(current_time, data):
     
     # Get sunrise and sunset times in local time, background thread might be updating the weather, so aquire the lock
     data.lock.acquire()
-    sunrise = data.sunrise.astimezone(timezone.pst)
-    sunset  = data.sunset.astimezone(timezone.pst)
+    sunrise = data.sunrise.astimezone(timezone.pt)
+    sunset  = data.sunset.astimezone(timezone.pt)
     data.lock.release()
     # Copy the date from the current_time, so that we can compare them even if sunrise and sunset are the next or previous day
     sunrise = sunrise.replace(day = current_time.day)
@@ -215,17 +216,21 @@ def update_face(current_time, data):
     # Send the words to the array
     neopixelarray.update_words(words, colour, linear_fade)
 
-
 # Update the words on the clock face
 def start_clock_loop(data):
     # Run forever
     while True:
         # The background thread might be updating the time, block until it does
-        data.lock.acquire()
-        current_time = utils.get_local_time()
-        data.lock.release()
+        if data.lock.acquire(1, 10):
+            current_time = utils.get_local_time()
+            # Update the last clock time
+            data.last_clock_time = current_time
+            data.lock.release()
 
-        update_face(current_time, data)
+            update_face(current_time, data)
+
+        # Check the main watchdog outside the lock, incase the main thread died in a locked state
+        check_main_watchdog(data)
 
         # Wait for the next minute to start. If this or other tasks delayed the running of this task, the below will compensate.
         # It is still possible to be delayed from the minute if a long running process is active on the minute itself.
